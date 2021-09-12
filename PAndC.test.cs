@@ -26,7 +26,7 @@ namespace Torn
             string tableName = "ng_game_log";
 
             //Create a table
-            MySqlHelper.ExecuteNonQuery(dbServer.GetConnectionString(_testDatabaseName), string.Format("CREATE TABLE {0} (`Event_Type` INT NOT NULL, `Time_Logged` DATETIME NOT NULL,  `CURRENT_TIMESTAMP` DATETIME NOT NULL, PRIMARY KEY (`Event_Type`)) ENGINE = MEMORY;", tableName));
+            MySqlHelper.ExecuteNonQuery(dbServer.GetConnectionString(_testDatabaseName), string.Format("CREATE TABLE {0} (`Event_Type` INT NOT NULL, `Time_Logged` DATETIME NOT NULL, PRIMARY KEY (`Event_Type`)) ENGINE = MEMORY;", tableName));
 
             string tableName2 = "ng_registry";
             MySqlHelper.ExecuteNonQuery(dbServer.GetConnectionString(_testDatabaseName), string.Format("CREATE TABLE {0} (`Registry_ID` INT NOT NULL, `Int_Data_1` INT NOT NULL, PRIMARY KEY (`Registry_ID`)) ENGINE = MEMORY;", tableName2));
