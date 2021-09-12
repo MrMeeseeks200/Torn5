@@ -64,8 +64,12 @@ namespace Torn
 				{
 					if (reader.Read())
 					{
-						if (reader.GetUInt32("Event_Type") == 0)  // 0 is 'Game Started'.
+						if (reader.GetUInt32("Event_Type") == 0) // 0 is 'Game Started'.
+						{
+							var currentTime = GetDateTime(reader, "CURRENT_TIMESTAMP");
+							var timeLogged = GetDateTime(reader, "Time_Logged");
 							return GetDateTime(reader, "CURRENT_TIMESTAMP") - GetDateTime(reader, "Time_Logged");
+						}
 						else
 							return TimeSpan.Zero;
 					}
@@ -245,8 +249,8 @@ namespace Torn
 		{
 			if (connection != null)
 				connection.Close();
-
 			connection = new MySqlConnection("server=" + _server + ";user=root;database=ng_system;port=3306;password=password;Convert Zero Datetime=True");
+			// connection = new MySqlConnection(_server);
 			try
 			{
 				connection.Open();
@@ -260,9 +264,9 @@ namespace Torn
 
 		bool EnsureConnected()
 		{
-			if (!Connected)
+			if (!connected)
 				Connect();
-			return Connected;
+			return connected;
 		}
 
 		DateTime GetDateTime(MySqlDataReader reader, string column)
