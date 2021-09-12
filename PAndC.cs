@@ -16,32 +16,45 @@ namespace Torn
 	{
 		MySqlConnection connection;
 		protected int heliosType;  // This is the database schema version.
-		protected string _server;
+		protected string _connection_string;
 
-		protected PAndC() {}
+		public PAndC() {}
 
-		public PAndC(string server)
+		public PAndC(string serverAddr)
+        {
+			string connectionStr = "server=" + serverAddr + ";user=root;database=ng_system;port=3306;password=password;Convert Zero Datetime=True";
+			SetupServer(connectionStr);
+        }
+
+		// Added for easier testing
+		public PAndC(Func<string, string> getConnectionString, string databaseName)
 		{
-			try
-			{
-				_server = server;
-				Connect();
-
-				var cmd = new MySqlCommand("SELECT Int_Data_1 FROM ng_registry WHERE Registry_ID = 0", connection);
-				using (var reader = cmd.ExecuteReader())
-				{
-					if (reader.Read())
-						heliosType = GetInt(reader, "Int_Data_1");
-				}
-			}
-			catch
-			{
-				connected = false;
-				throw;
-			}
+			string connectionStr = getConnectionString(databaseName);
+			SetupServer(connectionStr);
 		}
 
-		protected override bool GetConnected() { return connected && connection != null && connection.State == ConnectionState.Open; }
+		private void SetupServer(string connectionStr)
+        {
+            try
+            {
+                _connection_string = connectionStr;
+                Connect();
+
+                var cmd = new MySqlCommand("SELECT Int_Data_1 FROM ng_registry WHERE Registry_ID = 0", connection);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                        heliosType = GetInt(reader, "Int_Data_1");
+                }
+            }
+            catch
+            {
+                connected = false;
+                throw;
+            }
+        }
+
+        protected override bool GetConnected() { return connected && connection != null && connection.State == ConnectionState.Open; }
 
 		public override void Dispose()
 		{
@@ -249,8 +262,7 @@ namespace Torn
 		{
 			if (connection != null)
 				connection.Close();
-			connection = new MySqlConnection("server=" + _server + ";user=root;database=ng_system;port=3306;password=password;Convert Zero Datetime=True");
-			// connection = new MySqlConnection(_server);
+			connection = new MySqlConnection(_connection_string);
 			try
 			{
 				connection.Open();
@@ -294,11 +306,11 @@ namespace Torn
 
 	public class PAndCNexusWithIButton: PAndC
 	{
-		public PAndCNexusWithIButton(string server)
+		public PAndCNexusWithIButton(string serverAddr)
 		{
 			try
 			{
-				_server = server;
+				_connection_string = "server=" + serverAddr + ";user=root;database=ng_system;port=3306;password=password;Convert Zero Datetime=True";
 				Connect();
 				heliosType = -1;
 			}

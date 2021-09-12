@@ -40,7 +40,7 @@ namespace Torn
 
 
 
-            PAndC pAndCServer = new PAndC(dbServer.GetConnectionString(_testDatabaseName));
+            PAndC pAndCServer = new PAndC(dbServer.GetConnectionString, _testDatabaseName);
 
              TimeSpan gameTimeElapsed = pAndCServer.GameTimeElapsed();
 
