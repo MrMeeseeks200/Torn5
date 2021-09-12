@@ -78,11 +78,7 @@ namespace Torn
 					if (reader.Read())
 					{
 						if (reader.GetUInt32("Event_Type") == 0) // 0 is 'Game Started'.
-						{
-							var currentTime = GetDateTime(reader, "CURRENT_TIMESTAMP");
-							var timeLogged = GetDateTime(reader, "Time_Logged");
 							return GetDateTime(reader, "CURRENT_TIMESTAMP") - GetDateTime(reader, "Time_Logged");
-						}
 						else
 							return TimeSpan.Zero;
 					}
