@@ -122,30 +122,34 @@ namespace Torn.Report
 	public static class Reports
 	{
 		/// <summary>How many times does each colour come 1st, 2nd, 3rd (etc)?</summary>
-		public static ZoomReport ColourReport(League league, bool includeSecret, ReportTemplate rt)
+		public static ZoomReport ColourReport(List<League> leagues, bool includeSecret, ReportTemplate rt)
 		{
 			ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
-			ZoomReport report = new ZoomReport(ReportTitle("Colour Performance", league.Title, rt), "Rank", "center");
+			ZoomReport report = new ZoomReport(ReportTitle("Colour Performance", (leagues.Count == 1 ? leagues[0].Title: ""), rt), "Rank", "center");
 
-			List<Game> games = Games(league, includeSecret, rt);
+			var games = new List<Game>();
+			foreach (var league in leagues)
+				games.AddRange(Games(league, includeSecret, rt));
+			games.Sort();
 
 			var coloursUsed = games.SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct();
 			var colourTotals = new Dictionary<Colour, List<int>>();
 			foreach (Colour c in coloursUsed)
 				colourTotals.Add(c, new List<int>());
 
-			foreach (Game game in games)
-				foreach (GameTeam gameTeam in game.Teams)  // Roll through this team's games.
-				{
-					// Add the team's rank in this game to the colourTotals.
-					int rank = league.Game(gameTeam).Teams.IndexOf(gameTeam);
+			foreach (var league in leagues)
+				foreach (Game game in Games(league, includeSecret, rt))
+					foreach (GameTeam gameTeam in game.Teams)
+					{
+						// Add the team's rank in this game to the colourTotals.
+						int rank = league.Game(gameTeam).Teams.IndexOf(gameTeam);
 
-					while (colourTotals[gameTeam.Colour].Count <= rank)
-						colourTotals[gameTeam.Colour].Add(0);
-					if (rank > -1)
-						colourTotals[gameTeam.Colour][rank]++;
-				}
+						while (colourTotals[gameTeam.Colour].Count <= rank)
+							colourTotals[gameTeam.Colour].Add(0);
+						if (rank > -1)
+							colourTotals[gameTeam.Colour][rank]++;
+					}
 
 			coloursUsed = coloursUsed.OrderBy(c => -colourTotals[c].FirstOrDefault());
 
@@ -774,6 +778,7 @@ namespace Torn.Report
 			{
 				MaxChartByColumn = true
 			};
+			report.Columns[0].Rotate = true;
 
 			var games = Games(league, includeSecret, rt);
 			var groups = games.Select(g => g.Title).Distinct().ToList();
@@ -787,30 +792,49 @@ namespace Torn.Report
 				report.Rows.Last().Add(new ZCell(report.Rows.Count));  // Rank
 			}
 
+			List<TeamLadderEntry> previousLadder = null;
 			for (int group = 0; group < groups.Count(); group++)  // for each group of games
 			{
-				if (groups[group].ToLower().Contains("final") && !groups[group].ToLower().Contains("semi"))
-					groupGames.Clear();
+				string groupName = groups[group]?.ToLower() ?? "";
+
+				if ((groupName.Contains("final") && !groupName.Contains("semi")) || groupName.Contains("repechage") || groupName.Contains("repêchage"))
+					groupGames.Clear();  // Disregard previous results -- use only results from this round to rank.
 
 				var thisGroupGames = games.Where(g => g.Title == groups[group]).ToList();
 				groupGames.AddRange(thisGroupGames);
 
 				report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
+				if (league.IsPoints())
+					report.AddColumn(new ZColumn("Points", ZAlignment.Right, groups[group]));
 
-				if (groups[group].ToLower().Contains("semifinal") || groups[group].ToLower().Contains("semi final") ||
-					groups[group].ToLower().Contains("ascension") || groups[group].ToLower().Contains("format ") || groups[group].ToLower().Contains("track"))
+				if (groupName.Contains("semifinal") || groupName.Contains("semi final") ||
+					groupName.Contains("ascension") || groupName.Contains("format ") || groupName.Contains("track"))
 				{
-					report.AddColumn(new ZColumn("", ZAlignment.Right, groups[group]));
+					// Rank this round as an Ascension: teams that survive longer are ranked higher.
+
 					report.AddColumn(new ZColumn("Placings", ZAlignment.Right, groups[group]));
 					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]));
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
 					var ascension = GamesGrid(league, thisGroupGames, new ReportTemplate(ReportType.Ascension, new string[] { }));
+
+					// Find if there are any teams that topped the previous round but aren't in this round. If so, provide blanks for them (because they're skipping this round).
+					int offset = 0;
+					if (previousLadder != null)
+						for (offset = 0; offset < previousLadder.Count; offset++)
+							if (ascension.Rows.Exists(r => r[1].Tag == previousLadder[offset].Team))
+								break;
+					previousLadder = null;
+
+					for (int team = 0; team < offset; team++)
+						AddBlankCells(report.Rows[team], columnsPerGroup);
+
+					// For teams that are in this round, add cells for them.
 					for (int team = 0; team < Math.Min(report.Rows.Count, ascension.Rows.Count); team++)
 					{
-						ZRow aRow = ascension.Rows[team];
-						ZRow row = report.Rows[team];
-						ZCell teamCell = row.AddCell(aRow[1]);  // Team
+						ZRow ascensionRow = ascension.Rows[team];
+						ZRow row = report.Rows[team + offset];
+						ZCell teamCell = row.AddCell(ascensionRow[1]);  // Team
 						row.Add(new ZCell());  // Blank spacer
 
 						var placings = new List<string>();
@@ -823,44 +847,46 @@ namespace Torn.Report
 						}
 						row.Add(new ZCell(string.Join(", ", placings.ToArray())));  // Placings
 
-						row.Add(new ZCell(aRow.Count(c => !c.Empty()) - 2));  // Games
+						row.Add(new ZCell(ascensionRow.Count(c => !c.Empty()) - 2));  // Games
 						row.Add(new ZCell());  // Arrow
 
-						MultiLadderArrow(report, teamCell, group, columnsPerGroup, team);
+						MultiLadderArrow(report, teamCell, group, columnsPerGroup, team + offset);
 					}
 				}
 				else
 				{
-					if (league.IsPoints())
-						report.AddColumn(new ZColumn("Points", ZAlignment.Float, groups[group]));
+					// Rank this round based on score and/or victory points accumulated to date.
 
 					report.AddColumn(new ZColumn(ratio ? "Score Ratio" : "Average score", ZAlignment.Float, groups[group]));
 					report.AddColumn(new ZColumn("Games", ZAlignment.Integer, groups[group]));
 					report.AddColumn(new ZColumn());  // This column is for arrows.
 
 					var ladder = Ladder(league, groupGames, rt);
-					for (int t = 0; t < ladder.Count; t++)
+					int offset = 0;
+					if (previousLadder != null)
+						for (offset = 0; offset < previousLadder.Count; offset++)
+							if (ladder.Exists(x => x.Team == previousLadder[offset].Team))
+								break;
+					previousLadder = ladder;
+					for (int team = 0; team < offset; team++)
+						AddBlankCells(report.Rows[team], columnsPerGroup);
+
+					for (int t = 0; t < ladder.Count - offset; t++)
 					{
 						var entry = ladder[t];
 						var team = entry.Team;
 
-						var row = report.Rows[t];
+						var row = report.Rows[t + offset];
 
 						var gamesPlayedThisGroup = league.Played(thisGroupGames, team).Count;
 						if (gamesPlayedThisGroup == 0)
-						{
-							row.Add(new ZCell());  // Team
-							row.Add(new ZCell());  // Points
-							row.Add(new ZCell());  // Score
-							row.Add(new ZCell());  // Games
-							row.Add(new ZCell());  // Arrow
-						}
+							AddBlankCells(row, columnsPerGroup);
 						else
 						{
 							ZCell teamCell = row.AddCell(TeamCell(team));  // Team
 
 							if (league.IsPoints())
-								row.Add(new ZCell(ladder[t].Points));  // Points
+								row.Add(new ZCell(ladder[t].Points, chartType));  // Points
 
 							ZCell scoreCell;
 							if (entry.ScoreList.Count == 0)
@@ -888,7 +914,7 @@ namespace Torn.Report
 				}
 			}
 
-			report.RemoveColumn(report.Columns.Count - 1);  // Remove final arrows column.
+			report.RemoveZeroColumns();
 
 			int? topN = rt.SettingInt("ShowTopN");
 			if (topN != null)
@@ -909,11 +935,17 @@ namespace Torn.Report
 		{
 			if (group > 0)
 			{
-				var previousRank = report.Rows.FindIndex(r => r[(group - 1) * columnsPerGroup + 1].Hyper == teamCell.Hyper);
+				int previousRank = -1;
+				int previousCol = (group - 1) * columnsPerGroup + 1;
+				while (previousCol >= 0 && previousRank == -1)
+				{
+					previousRank = report.Rows.FindIndex(r => r.Valid(previousCol) && r[previousCol].Hyper == teamCell.Hyper);
+					previousCol -= columnsPerGroup;
+				}
 				if (previousRank > -1)
 				{
 					var arrow = new Arrow();
-					arrow.From.Add(new ZArrowEnd(previousRank, 5));
+					arrow.From.Add(new ZArrowEnd(previousRank, 5) { Expand = true });
 					arrow.To.Add(new ZArrowEnd(rank, 5));
 					arrow.Color = Utility.StringToColor(teamCell.Text);
 					report.Columns[group * columnsPerGroup].Arrows.Add(arrow);
@@ -921,11 +953,17 @@ namespace Torn.Report
 			}
 		}
 
+		static void AddBlankCells(ZRow row, int i)
+		{
+			for (int j = 0; j < i; j++)
+				row.Add(new ZCell());
+		}
+
 		/// <summary>Detailed report of a single game. One row for each player, plus total rows for each team and for the whole game.</summary>
 		public static ZoomReport OneGame(League league, Game game)
 		{
 			ZoomReport report = new ZoomReport(game.LongTitle(),
-											   "Rank,Name,Score,Tags +,Tags -,Tag Ratio,Score Ratio,TR\u00D7SR,Destroys,Denies,Denied,Yellow Card,Red Card,ID",
+											   "Rank,Name,Score,Tags +,Tags -,Tag Ratio,Score Ratio,TR\u00D7SR,Destroys,Denies,Got Denied,Yellow Card,Red Card,ID",
 											   "center,left,integer,integer,integer,float,float,float,integer,integer,integer,integer,integer,integer,left",
 											   ",,,Tags,Tags,Ratio,Ratio,Ratio,Base,Base,Base,Penalties,Penalties,")
 			{
@@ -946,6 +984,8 @@ namespace Torn.Report
 
 			var gameTotal = new GamePlayer();
 
+			double maxScore = double.MinValue;
+			int maxTags = 1;
 			foreach (GameTeam gameTeam in game.Teams)
 			{
 				var teamTotal = new GamePlayer();
@@ -969,6 +1009,8 @@ namespace Torn.Report
 
 					FillDetails(playerRow, gamePlayer, color, (double)game.TotalScore() / game.Players().Count);
 					playerRow.Add(new ZCell(gamePlayer.PlayerId));
+					maxScore = Math.Max(maxScore, gamePlayer.Score);
+					maxTags = Math.Max(maxTags, Math.Max(gamePlayer.HitsOn, gamePlayer.HitsBy));
 
 					teamTotal.Add(gamePlayer);
 					gameTotal.Add(gamePlayer);
@@ -1043,111 +1085,133 @@ namespace Torn.Report
 
 			report.RemoveZeroColumns();
 
-			foreach (var gameTeam in game.Teams)
-			{
-				var leagueTeam = league.LeagueTeam(gameTeam);
-
-				foreach (var player1 in gameTeam.Players)
-				{
-					var leaguePlayer = league.LeaguePlayer(player1);
-					string name = leaguePlayer == null ? player1.PlayerId : leaguePlayer.Name;
-					Color color = (player1.Colour == Colour.None ? gameTeam.Colour : player1.Colour).ToColor();
-
-					// Add a row and a column for each player on the team.
-					var column = new ZColumn(name)
-					{
-						Alignment = ZAlignment.Integer,
-						Rotate = true,
-						Color = color
-					};
-					if (!solo || gameTeam.Players.Count > 1)
-						column.GroupHeading = leagueTeam == null ? "Team ??" : leagueTeam.Name;
-					report.AddColumn(column);
-					sameWidths.Add(column);
-				}
-			}
-
+			int maxHits = 1;
 			var idCol = report.Columns.FindIndex(c => c.Text == "ID");
-			foreach (var row in report.Rows.Where(r => r.Valid(idCol)))
+
+			if (game?.ServerGame?.Events?.Any() ?? false)
 			{
-				var player1 = game.Players().Find(p => p.PlayerId == row[idCol].Text);
-				if (player1 == null)
-					continue;
-
-				var gameTeam = player1.GameTeam(league);
-				foreach (var gameTeam2 in game.Teams)
-					foreach (var player2 in gameTeam2.Players)
-					{
-						ZCell cell;
-						if (player1 == player2)
-							cell = new ZCell("\u2572", row[0].Color);  // Diagonal Upper Left to Lower Right.
-						else if (player1 is ServerPlayer p1 && player2 is ServerPlayer p2)
-						{
-							int count = game.ServerGame.Events.Count(x => x.ServerPlayerId == p1.ServerPlayerId && x.OtherPlayer == p2.ServerPlayerId && x.Event_Type < 14);
-							cell = BlankZero(count, ChartType.Bar, gameTeam == gameTeam2 ? row[0].Color : Color.Empty);
-							if (gameTeam != gameTeam2)
-								cell.BarColor = ZReportColors.Darken(row[0].Color);
-						}
-						else
-							cell = new ZCell("");
-
-						row.Add(cell);
-					}
-
-				if (game.ServerGame?.Events != null && game.ServerGame.Events.Any())
+				foreach (var gameTeam in game.Teams)
 				{
-					var text = new StringBuilder();
-					var html = new StringBuilder();
-					var svg = new StringBuilder();
-					var startTime = game.ServerGame.Events.FirstOrDefault().Time;
-					int minutes = 0;  // How many whole minutes into the game are we?
-					Colour currentColour = Colour.None;
-					if (player1 is ServerPlayer player1sp)
-					{
-						foreach (var eevent in game.ServerGame.Events.Where(x => x.ServerPlayerId == player1sp.ServerPlayerId && ((x.Event_Type >= 28 && x.Event_Type <= 34) || (x.Event_Type >= 37 && x.Event_Type <= 1404))))
-						{
-							int now = (int)Math.Truncate(eevent.Time.Subtract(startTime).TotalMinutes);
-							if (now - minutes > 1)
-							{
-								ColourSymbol(text, html, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
-								minutes = now;
-							}
+					var leagueTeam = league.LeagueTeam(gameTeam);
 
-							Colour otherTeam = (Colour)(eevent.OtherTeam + 1);
-							switch (eevent.Event_Type)
+					foreach (var player1 in gameTeam.Players)
+					{
+						var leaguePlayer = league.LeaguePlayer(player1);
+						string name = leaguePlayer == null ? player1.PlayerId : leaguePlayer.Name;
+						Color color = (player1.Colour == Colour.None ? gameTeam.Colour : player1.Colour).ToColor();
+
+						// Add a column for each player on the team.
+						var column = new ZColumn(name)
+						{
+							Alignment = ZAlignment.Integer,
+							Rotate = true,
+							Color = color
+						};
+						if (!solo || gameTeam.Players.Count > 1)
+							column.GroupHeading = leagueTeam == null ? "Team ??" : leagueTeam.Name;
+						report.AddColumn(column);
+						sameWidths.Add(column);
+					}
+				}
+
+				foreach (var row in report.Rows.Where(r => r.Valid(idCol)))
+				{
+					var player1 = game.Players().Find(p => p.PlayerId == row[idCol].Text);
+					if (player1 == null)
+						continue;
+
+					// Add who-shot-who cells.
+					var gameTeam = player1.GameTeam(league);
+					foreach (var gameTeam2 in game.Teams)
+						foreach (var player2 in gameTeam2.Players)
+						{
+							ZCell cell;
+							if (player1 == player2)
+								cell = new ZCell("\u2572", row[0].Color);  // Diagonal Upper Left to Lower Right.
+							else if (player1 is ServerPlayer p1 && player2 is ServerPlayer p2)
 							{
-								case 28: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
-								case 29: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
-								case 30: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
-								case 31: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
-								case 32: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
-								case 33: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
-								case 34: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
-								case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // player tagged target
-								case 1401:
-								case 1402:  // score denial points: circle with cross, circle with slash
-									ColourSymbol(text, html, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
-									if (eevent.ShotsDenied % 2 == 1) ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
-									break;
-								case 1403: case 1404: ColourSymbol(text, html, svg, ref currentColour, Colour.None, eevent.ShotsDenied == 1 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
-								default:
-									ColourSymbol(text, html, svg, ref currentColour, Colour.None, "?"); break;
+								int count = game.ServerGame.Events.Count(x => x.ServerPlayerId == p1.ServerPlayerId && x.OtherPlayer == p2.ServerPlayerId && x.Event_Type < 14);
+								cell = BlankZero(count, ChartType.Bar, gameTeam == gameTeam2 ? row[0].Color : Color.Empty);
+								if (gameTeam != gameTeam2)
+									cell.BarColor = ZReportColors.Darken(row[0].Color);
+								maxHits = Math.Max(maxHits, count);
+							}
+							else
+								cell = new ZCell("");
+
+							row.Add(cell);
+						}
+
+					if (game.ServerGame?.Events != null && game.ServerGame.Events.Any())
+					{
+						var text = new StringBuilder();
+						var html = new StringBuilder();
+						var svg = new StringBuilder();
+						var startTime = game.ServerGame.Events.FirstOrDefault().Time;
+						int minutes = 0;  // How many whole minutes into the game are we?
+						Colour currentColour = Colour.None;
+						if (player1 is ServerPlayer player1sp)
+						{
+							foreach (var eevent in game.ServerGame.Events.Where(x => x.ServerPlayerId == player1sp.ServerPlayerId && ((x.Event_Type >= 28 && x.Event_Type <= 34) || (x.Event_Type >= 37 && x.Event_Type <= 1404))))
+							{
+								int now = (int)Math.Truncate(eevent.Time.Subtract(startTime).TotalMinutes);
+								if (now - minutes > 1)
+								{
+									ColourSymbol(text, html, svg, ref currentColour, Colour.None, new string('\u00B7', now - minutes));  // Add one dot for each whole minute of the game.
+									minutes = now;
+								}
+
+								Colour otherTeam = (Colour)(eevent.OtherTeam + 1);
+								switch (eevent.Event_Type)
+								{
+									case 28: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f7e8"); break;  // warning: yellow square.
+									case 29: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "\U0001f7e5"); break;  // terminated: red square.
+									case 30: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u25cb"); break;  // hit base: open circle
+									case 31: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2b24"); break;  // destroyed base: filled circle.
+									case 32: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\U0001f480"); break;  // eliminated: skull
+									case 33: ColourSymbol(text, html, svg, ref currentColour, otherTeam, "!"); break;  // hit by base
+									case 34: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // hit by mine
+									case 37: case 38: case 39: case 40: case 41: case 42: case 43: case 44: case 45: case 46: ColourSymbol(text, html, svg, ref currentColour, Colour.None, "!"); break;  // player tagged target
+									case 1401:
+									case 1402:  // score denial points: circle with cross, circle with slash
+										ColourSymbol(text, html, svg, ref currentColour, otherTeam, new string('\u29bb', eevent.ShotsDenied / 2));  // If this is a game where you can deny for many shots (e.g. 10 shots to destroy a base or whatever) show a double-deny mark for each two shots denied.
+										if (eevent.ShotsDenied % 2 == 1) ColourSymbol(text, html, svg, ref currentColour, otherTeam, "\u2300");  // Show remaining one deny hit if necessary.
+										break;
+									case 1403: case 1404: ColourSymbol(text, html, svg, ref currentColour, Colour.None, eevent.ShotsDenied == 1 ? "\U0001f61e" : "\U0001f620"); break;  // lose points for being denied: sad face, angry face
+									default:
+										ColourSymbol(text, html, svg, ref currentColour, Colour.None, "?"); break;
+								}
 							}
 						}
+						ColourSymbol(text, html, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
+						row.Add(new ZCell(text.ToString())
+						{
+							Html = html.ToString(),
+							Svg = svg.ToString()
+						}
+							);
 					}
-					ColourSymbol(text, html, svg, ref currentColour, Colour.None, new string('\u00B7', (int)Math.Truncate(game.ServerGame.Events.LastOrDefault().Time.Subtract(startTime).TotalMinutes) - minutes) + ".");  // Add one dot for each whole minute of the game.
-					row.Add(new ZCell(text.ToString())
-					{
-						Html = html.ToString(),
-						Svg = svg.ToString()
-					}
-						);
 				}
-			}
 
-			report.AddColumn(new ZColumn("Base hits etc.", ZAlignment.Left));
+				report.AddColumn(new ZColumn("Base hits etc.", ZAlignment.Left)
+				{
+					FillWidth = true
+				}
+				);
+			}
 
 			report.RemoveColumn(idCol);
+
+			report.CalculateFill = delegate (ZRow row, int col, double chartMin, double chartMax, ref double? fill) 
+			{
+				if (report.Columns[col].Text == "Score")
+					fill = row[col].Number / maxScore;
+				if (report.Columns[col].GroupHeading == "Tags")
+					fill = row[col].Number / maxTags;
+				if (report.Columns[col].Color != Color.Empty)
+					fill = row[col].Number / maxHits; 
+			};
+
 			return report;
 		}
 
@@ -1925,14 +1989,18 @@ namespace Torn.Report
 			var colourTotals = new Dictionary<Colour, List<int>>();
 
 			if (showColours)
+			{
+				var colourColumns = new List<ZColumn>();
 				foreach (Colour c in coloursUsed)
 				{
-					report.AddColumn(new ZColumn("1st", ZAlignment.Integer, c.ToString()));
-					report.AddColumn(new ZColumn("2nd", ZAlignment.Integer, c.ToString()));
-					report.AddColumn(new ZColumn("3rd", ZAlignment.Integer, c.ToString()));
+					colourColumns.Add(report.AddColumn(new ZColumn("1st", ZAlignment.Integer, c.ToString())));
+					colourColumns.Add(report.AddColumn(new ZColumn("2nd", ZAlignment.Integer, c.ToString())));
+					colourColumns.Add(report.AddColumn(new ZColumn("3rd", ZAlignment.Integer, c.ToString())));
 
 					colourTotals.Add(c, new List<int>());
 				}
+				report.SameWidths.Add(colourColumns);
+			}
 
 			if (league.IsPoints())
 				report.AddColumn(new ZColumn("Points", ZAlignment.Float));
@@ -1954,6 +2022,7 @@ namespace Torn.Report
 			ZCell barCell = null;
 
 			List<int> countList = new List<int>();  // Number of games each team has played, for scaling.
+			int maxPlace = 1;
 
 			foreach (TeamLadderEntry entry in ladder)  // Create a row for each League team.
 			{
@@ -1991,7 +2060,10 @@ namespace Torn.Report
 					foreach (Colour c in coloursUsed)
 						for (int rank = 0; rank < 3; rank++)
 							if (colourCounts[c].Count > rank && colourCounts[c][rank] > 0)
+							{
 								row.Add(new ZCell(colourCounts[c][rank], ChartType.Bar, "N0", c.ToColor()));
+								maxPlace = Math.Max(maxPlace, colourCounts[c][rank]);
+							}
 							else
 								row.Add(new ZCell("", c.ToColor()));
 				}
@@ -2107,6 +2179,7 @@ namespace Torn.Report
 			for (int i = 0; i < report.Rows.Count; i++)
 				report.Rows[i][0].Number = i + 1;
 
+			int maxTotal = 1;
 			if (showColours)  // Add a Totals row at the bottom of the report.
 			{
 				ZRow row = new ZRow();
@@ -2116,23 +2189,26 @@ namespace Torn.Report
 
 				foreach (Colour c in coloursUsed)
 					for (int rank = 0; rank < 3; rank++)
-		 			{
-		 			Color dark = Color.FromArgb((c.ToColor().R + Color.Gray.R) / 2, (c.ToColor().G + Color.Gray.G) / 2, (c.ToColor().B + Color.Gray.B) / 2);
-		 				if (colourTotals[c].Count > rank)
-		 					row.Add(BlankZero(colourTotals[c][rank], ChartType.Bar, dark));
+					{
+						Color dark = Color.FromArgb((c.ToColor().R + Color.Gray.R) / 2, (c.ToColor().G + Color.Gray.G) / 2, (c.ToColor().B + Color.Gray.B) / 2);
+						if (colourTotals[c].Count > rank)
+						{
+							row.Add(BlankZero(colourTotals[c][rank], ChartType.Bar, dark));
+							maxTotal = Math.Max(maxTotal, colourTotals[c][rank]);
+						}
 		 				else
 		 					row.Add(new ZCell("", dark));
 		 			}
 
 				if (league.IsPoints())
-					row.Add(new ZCell(ladder.Sum(e => e.Points) / ladder.Count(), ChartType.None, "F1", Color.Gray));  // average league points scored
+					row.Add(new ZCell(ladder.Sum(e => e.Points) / ladder.Count(), ChartType.None, "f1", Color.Gray));  // average league points scored
 
 				if (ratio)
 					row.Add(new ZCell(ladder.Sum(e => e.Score) * 100.0 / ladder.Count(), ChartType.None, "P1", Color.Gray));  // average game score ratio
 				else
 					row.Add(new ZCell(ladder.Sum(e => e.Score) / ladder.Count(), ChartType.None, "N0", Color.Gray));  // average game score
 
-				row.Add(new ZCell(countList.Average(), ChartType.None, "F1", Color.Gray));  // average games played
+				row.Add(new ZCell(countList.Average(), ChartType.None, "f1", Color.Gray));  // average games played
 
 				if (rt.Drops != null && rt.Drops.HasDrops())
 					row.Add(new ZCell(""));  // games dropped
@@ -2151,7 +2227,17 @@ namespace Torn.Report
 				report.Description = "This report ranks teams.";
 
 				FinishReport(report, games, rt);
-		
+
+				report.CalculateFill = delegate (ZRow row, int col, double chartMin, double chartMax, ref double? fill)
+				{
+					if (string.IsNullOrEmpty(report.Columns[col].GroupHeading))
+						return;
+					if (row == report.Rows.Last())
+						fill = row[col].Number / maxTotal;
+					else
+						fill = row[col].Number / maxPlace;
+				};
+
 				if (more && less)
 					report.Description += " Teams with more or less than " + mode.ToString(CultureInfo.CurrentCulture) + " games have been scaled down or up. This is shown in the Scaled column.";
 				else if (more)

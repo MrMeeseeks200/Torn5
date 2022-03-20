@@ -32,6 +32,8 @@ edit league -- team add/delete/rename, player add/delete/re-ID; implement OK/Can
 better save format
 read from demo "server"
 read from laserforce server
+sanity check report. Add new check: are there odd games out with no victory points?
+tech report: hit totals for all sensors on all packs, plus games where a sensor takes 0 hits
 
 TODO for BOTH:
 output to printer
@@ -54,8 +56,6 @@ read from O-Zone server
 spark lines
 check latest version via REST
 reports and uploads in worker thread
-sanity check report. Add new check: are there odd games out with no victory points?
-tech report: hit totals for all sensors on all packs, plus games where a sensor takes 0 hits
 option to zero eliminated players.
 Move global settings to Program.cs
 
@@ -264,9 +264,7 @@ namespace Torn.UI
 		{
 			try
 			{
-				tableLayoutPanel1.SetCellPosition(panelLeague, new TableLayoutPanelCellPosition(0, (tableLayoutPanel1.RowCount + adjust) / 2));
-				tableLayoutPanel1.SetRowSpan(listViewLeagues, (tableLayoutPanel1.RowCount + adjust) / 2);
-				tableLayoutPanel1.SetRowSpan(panelLeague, (tableLayoutPanel1.RowCount + adjust + 1) / 2);
+				tableLayoutPanel1.SetRowSpan(splitContainer1, tableLayoutPanel1.RowCount + adjust);
 				tableLayoutPanel1.SetRowSpan(panelGames, tableLayoutPanel1.RowCount + adjust);
 				tableLayoutPanel1.SetRowSpan(playersBox, tableLayoutPanel1.RowCount + adjust);
 			}
@@ -283,7 +281,7 @@ namespace Torn.UI
 
 		void AddTeamBoxes()
 		{
-			while(tableLayoutPanel1.Controls.Count - 4 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
+			while(tableLayoutPanel1.Controls.Count - 3 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
 			{
 				TeamBox teamBox = new TeamBox
 				{
@@ -456,7 +454,7 @@ namespace Torn.UI
 
 		void ButtonExportClick(object sender, EventArgs e)
 		{
-			if (GetExportFolder() != null)
+			if (GetExportFolder())
 			{
 				Cursor.Current = Cursors.WaitCursor;
 				progressBar1.Value  = 0;
@@ -486,6 +484,7 @@ namespace Torn.UI
 
 				if (new FormReport
 				{
+					Text = "Report on " + (SelectedLeagues().Count == 1 ? holder.League.Title : SelectedLeagues().Count.ToString() + " leagues"),
 					From = (holder.League.AllGames.FirstOrDefault()?.Time ?? default).Date,
 					To = (holder.League.AllGames.LastOrDefault()?.Time ?? default).Date,
 					ReportTemplate = adhocReportTemplate,
@@ -513,7 +512,7 @@ namespace Torn.UI
 
 		void ButtonExportFixturesClick(object sender, EventArgs e)
 		{
-			if (GetExportFolder() != null)
+			if (GetExportFolder())
 				ExportPages.ExportFixtures(exportFolder, SelectedLeagues());
 		}
 
@@ -706,7 +705,7 @@ namespace Torn.UI
 				return;
 			}
 
-			if (GetExportFolder() != null)
+			if (GetExportFolder())
 			{
 				progressBar1.Value = 0;
 				try {
@@ -716,10 +715,10 @@ namespace Torn.UI
 			}
 		}
 
-		string GetExportFolder(string message = "", bool showDialog = false)
+		bool GetExportFolder(string message = "", bool showDialog = false)
 		{
 			if (!showDialog && !string.IsNullOrEmpty(exportFolder))
-				return exportFolder;
+				return true;
 
 			if (!string.IsNullOrEmpty(message))
 				folderBrowserDialog1.Description = message;
@@ -730,10 +729,12 @@ namespace Torn.UI
 
 			folderBrowserDialog1.SelectedPath = exportFolder;
 
-			if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
-				return exportFolder = folderBrowserDialog1.SelectedPath;
-			else
-				return null;
+			bool result = folderBrowserDialog1.ShowDialog() == DialogResult.OK;
+			if (result)
+			{
+				exportFolder = folderBrowserDialog1.SelectedPath;
+			}
+			return result;
 		}
 
 		void SetRowColumnCount(int rows, int columns)
@@ -922,7 +923,6 @@ namespace Torn.UI
 		void ListViewLeaguesItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
 		{
 			Boolean b = listViewLeagues.SelectedItems.Count > 0;
-			//string s = listViewLeagues.SelectedItems.Count > 1 ? "s" : "";
 
 			buttonClose.Enabled = b;
 			buttonSave.Enabled = b;

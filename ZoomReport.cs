@@ -68,7 +68,9 @@ namespace Zoom
 		/// <summary>left, right or center</summary>
 		public ZAlignment Alignment { get; set; }
 		/// <summary>If true, we should try rotating the header text to make it fit better.</summary>
-		public bool Rotate;
+		public bool Rotate { get; set; }
+		/// <summary>If true, try to adjust text spacing so that all cells in this column have text that fills the whole available width.</summary>
+		public bool FillWidth { get; set; }
 		public List<Arrow> Arrows { get; }
 		/// <summary>Optional background colour.</summary>
 
@@ -86,12 +88,12 @@ namespace Zoom
 		}
 
 		/// <summary>Adds a simple arrow with one From and one To, both in the specified row and of the specified width.</summary>
-		public void AddArrow(int row, int width, Color color = default)
+		public void AddArrow(int row, int width, Color color = default, bool expand = false)
 		{
 			var arrow = new Arrow { Color = color };
 			Arrows.Add(arrow);
-			arrow.From.Add(new ZArrowEnd(row, width));
-			arrow.To.Add(new ZArrowEnd(row, width));
+			arrow.From.Add(new ZArrowEnd(row, width) { Expand = expand } );
+			arrow.To.Add(new ZArrowEnd(row, width) { Expand = expand } );
 		}
 	}
 
@@ -100,6 +102,8 @@ namespace Zoom
 	{
 		public int Row { get; set; }
 		public double Width { get; set; }
+		/// <summary>If true, look to see if this From end can be moved leftwards into empty cells, or this To end can be moved rightwards into empty cells.</summary>
+		public bool Expand { get; set; }
 
 		public ZArrowEnd(int row, double width)
 		{
@@ -191,7 +195,7 @@ namespace Zoom
 					else if (string.IsNullOrEmpty(NumberFormat))
 						return Number.ToString();
 					else if (Number != null)
-						return ((double)Number).ToString(NumberFormat, CultureInfo.CurrentCulture);
+							return ((double)Number).ToString(NumberFormat, CultureInfo.CurrentCulture);
 					else
 						return "";
 				}
@@ -314,9 +318,6 @@ namespace Zoom
 		}
 	}
 
-//  TCalcBar = procedure(report: TZoomReport; row, col: Integer; max: Real; var fill: Real);  // callback to custom-set bar cell filledness
-//  TPaintBar = procedure(report: TZoomReport; row, col: Integer; canvas: TCanvas; rect: TRect; Color, BarColor: TColor);  // callback to custom-paint bar background
-
 	public class ZReportColors
 	{
 		public Color TitleFontColor { get; set; }
@@ -390,6 +391,7 @@ namespace Zoom
 		/// <summary>Export to an HTML table.</summary>
 		public abstract string ToHtml();
 		/// <summary>Export to an HTML SVG element.</summary>
+		/// <param name="pure">True if this is standalone SVG that will not be embedded in an HTML file, and therefore cannot contain xlinks or javascript text resizing.</param>
 		public abstract string ToSvg(bool pure = false);
 		public abstract void ToSvg(StringBuilder sb, bool pure = false);
 		public abstract IEnumerable<Color> BarCellColors();
@@ -402,6 +404,8 @@ namespace Zoom
 			return 0 <= i && i < list.Count;
 		}
 	}
+
+	public delegate void CalculateFill(ZRow row, int col, double chartMin, double chartMax, ref double? fill);  // Callback to custom-set bar cell filledness.
 
 	public class ZoomReport: ZoomReportBase
 	{
@@ -423,9 +427,11 @@ namespace Zoom
 		public bool Bars { get; set; }
 		/// <summary>Add groups of columns that should be rendered with the same width here.</summary>
 		public List<List<ZColumn>> SameWidths { get; private set; }
+		/// <summary>Callback to custom-set bar cell filledness.</summary>
+		public CalculateFill CalculateFill { get; set; }
 
-		//OnCalcBar: TCalcBar;
-		//OnPaintBar: TPaintBar;
+		//public delegate void PaintBar (ZoomReport report, int row, int col, TCanvas canvas, Rect rect, Color Color, Color BarColor);  // callback to custom-paint bar background
+		//public PaintBar PaintBar { get; set; }
 
 		public ZoomReport(string title, string headings = "", string alignments = "", string groupHeadings = "")
 		{
@@ -493,6 +499,9 @@ namespace Zoom
 
 		public bool ColumnZeroOrNaN(int i)
 		{
+			if (Columns[i].Arrows.Any())
+				return false;
+
 			foreach(ZRow row in Rows)
 				if (i < row.Count && !row[i].EmptyOrNaN() && row[i].Number != 0)
 					return false;
@@ -510,6 +519,7 @@ namespace Zoom
 					row.RemoveAt(i);
 		}
 
+		/// <summary>Remove columns which contain no arrows and whose data is all empty, NaN or 0.</summary>
 		public void RemoveZeroColumns()
 		{
 			for (int i = Columns.Count - 1; i >= 0; i--)
@@ -827,7 +837,7 @@ namespace Zoom
 			s.Append("\" />\n");
 		}
 
-		void SvgBeginText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string cssClass = null, string hyper = null, double scale = 1.0)
+		void SvgBeginText(StringBuilder s, int indent, int x, int y, int width, int height, double fontSize, Color fontColor, ZAlignment alignment, string cssClass, string hyper, bool fillWidth)
 		{
 			s.Append('\t', indent);
 			if (!string.IsNullOrEmpty(hyper))
@@ -839,6 +849,9 @@ namespace Zoom
 
 			if (!string.IsNullOrEmpty(hyper))
 				s.Append("text-decoration=\"underline\" ");
+
+			if (fillWidth)
+				s.AppendFormat("textLength=\"{0}\" lengthAdjust=\"spacing\" ", width);
 
 			switch (alignment)
 			{
@@ -852,7 +865,7 @@ namespace Zoom
 					s.AppendFormat("text-anchor=\"end\" x=\"{0}\"", x + width - 1);
 				break;
 			}
-			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2}\"", y + height * 3 / 4, width, (int)(scale * height * 3 / 4));
+			s.AppendFormat(" y=\"{0}\" width=\"{1}\" font-size=\"{2:G2}\"", y + height * 3 / 4, width, fontSize);
 
 			if (!string.IsNullOrEmpty(hyper) || fontColor != Color.Black)
 			{
@@ -874,79 +887,83 @@ namespace Zoom
 			s.Append('\n');
 		}
 
+		/// <summary>This overload formats the value of a cell then calls the other overload.
+		/// If you specify a format starting with 'E' or 'G', it changes values like 0.0000123 to a style like 1.23x10^-5, but with Unicode superscript digits.</summary>
 		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell, bool pure)
 		{
 			if (cell.Empty())
 				return;
 
 			var text = cell.Svg ?? WebUtility.HtmlEncode(cell.Text);
-			float textWidth = TextWidth(text, pure);
-
-			SvgBeginText(s, indent, x, y, width, height, Colors.TextColor, column.Alignment, cell.CssClass, pure ? null : cell.Hyper, pure && width < textWidth ? width / textWidth : 1);
-
+			var s2 = new StringBuilder();
 			int decimals = 0;
-			if (!string.IsNullOrEmpty(cell.NumberFormat) && cell.NumberFormat.Length >= 2 && (cell.NumberFormat[0] == 'E' || cell.NumberFormat[0] == 'G'))
+			char numberFormat = cell.NumberFormat?.Length >= 1 ? cell.NumberFormat[0] : ' ';
+			if (cell.NumberFormat?.Length >= 2 && (numberFormat == 'E' || numberFormat == 'G'))
 				decimals = int.Parse(cell.NumberFormat.Substring(1));
+
+			if (numberFormat == 'f')
+				while (text?.Length >= 1 && (text.Last() == '0' || text.Last() == CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0]))
+					text = text.Substring(0, text.Length - 1);
 
 			if (cell.Number == 0 || cell.Number == null || double.IsNaN((double)cell.Number) || double.IsInfinity((double)cell.Number) ||
 			    Math.Abs((double)cell.Number) > 0.0001)
 			{
-				s.Append(text);
+				s2.Append(text);
 				
 				// Now right-pad it, with a decimal-sized space if there's no decimal, and digit-sized spaces if there's not enough digits after the decimal.
 				if (decimals > 0 && !text.Contains(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator))
-					s.Append('\u2008');  // punctutation space (width of a .)
+					s2.Append('\u2008');  // punctutation space (width of a .)
 				var digitsAfterDecimal = text.Length - text.IndexOf(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator) - 1;
 				if (decimals > 0 && digitsAfterDecimal < decimals)
 				{
-					s.Append('0', decimals - digitsAfterDecimal);
+					s2.Append('0', decimals - digitsAfterDecimal);
 					if (digitsAfterDecimal < 4)
-						s.Append('\u2002', 4 - decimals);  // en space (nut)
+						s2.Append('\u2002', 4 - decimals);  // en space (nut)
 				}
 				else if (decimals > 0 && digitsAfterDecimal < 4)
-					s.Append('\u2002', 4 - digitsAfterDecimal);  // en space (nut)
+					s2.Append('\u2002', 4 - digitsAfterDecimal);  // en space (nut)
 			}
 			else
 			{
 				int magnitude = (int)Math.Floor(Math.Log10(Math.Abs((double)cell.Number)));
 				string digits = "\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";  // superscript 0123456789
-				s.AppendFormat("{0:F" + (decimals - 1).ToString() + "}", (double)cell.Number * Math.Pow(10, -magnitude));
-				s.Append('\u00D7'); // multiply symbol
-				s.Append("10");
+				s2.AppendFormat("{0:F" + (decimals - 1).ToString() + "}", (double)cell.Number * Math.Pow(10, -magnitude));
+				s2.Append('\u00D7'); // multiply symbol
+				s2.Append("10");
 				if (magnitude < 0)
-					s.Append('\u207B');  // superscript -
+					s2.Append('\u207B');  // superscript -
 
 				if (magnitude == 0)
-					s.Append('\u2070');  // superscript 0
+					s2.Append('\u2070');  // superscript 0
 				else
 					for (int i = (int)Math.Log10(Math.Abs(magnitude)); i >= 0; i--)
-						s.Append(digits[(int)((Math.Abs(magnitude) / Math.Pow(10, i)) % 10)]);
+						s2.Append(digits[(int)((Math.Abs(magnitude) / Math.Pow(10, i)) % 10)]);
 			}
-			SvgEndText(s, pure ? null : cell.Hyper);
+
+			SvgTextEscaped(s, indent, x, y, width, height, Colors.TextColor, column.Alignment, s2.ToString(), cell.CssClass, cell.Hyper, pure, column.FillWidth);
 		}
 
 		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass = null, string hyper = null, bool pure = false)
 		{
+			SvgTextEscaped(s, indent, x, y, width, height, fontColor, alignment, WebUtility.HtmlEncode(text), cssClass, hyper, pure, false);
+		}
+
+		void SvgTextEscaped(StringBuilder s, int indent, int x, int y, int width, int height, Color fontColor, ZAlignment alignment, string text, string cssClass, string hyper, bool pure, bool fillWidth)
+		{
 			if (string.IsNullOrEmpty(text))
 				return;
 
-			float textWidth = TextWidth(text, pure);
-
-			SvgBeginText(s, indent, x, y, width, height, fontColor, alignment, cssClass, pure ? null : hyper, pure && width < textWidth ? width / textWidth : 1);
-			s.Append(WebUtility.HtmlEncode(text));
-			SvgEndText(s, pure ? null : hyper);
-		}
-
-		float TextWidth(string text, bool pure)
-		{
+			float textWidth = width;
 			if (pure)
 			{
 				var graphics = Graphics.FromImage(new Bitmap(1000, 20));
-				var font = new Font("Arial", 11);
-				return graphics.MeasureString(text, font, 1000).Width;
+				var font = new Font("Arial", height / 2);
+				textWidth = Math.Max(width, graphics.MeasureString(text, font, 1000).Width);
 			}
-			else
-				return 0;
+
+			SvgBeginText(s, indent, x, y, width, height, width / textWidth * height * (pure ? 0.681 : 0.75), fontColor, alignment, cssClass, pure ? null : hyper, fillWidth);
+			s.Append(text);
+			SvgEndText(s, pure ? null : hyper);
 		}
 
 		void SvgCircle(StringBuilder s, int indent, double x, double y, double radius, Color fillColor)
@@ -991,8 +1008,28 @@ namespace Zoom
 
 		enum TopBottomType { Left, Right, Both }; // Does the top of this arrow have an end from the left? An end to the right? One of each? What about the bottom of the arrow?
 
+		float FindArrowLeft(ZArrowEnd end, int col, List<float> widths)
+		{
+			if (end.Expand)
+				while (Columns.Valid(col - 1) && Rows[end.Row].Valid(col - 1) && Rows[end.Row][col - 1].Empty() &&
+						!Columns[col - 1].Arrows.Exists(a => a.From.Exists(f => f.Row == end.Row) || a.To.Exists(t => t.Row == end.Row)))
+					col--;
+
+			return widths.Take(col).Sum(w => w + 1) + 0.5F;
+		}
+
+		float FindArrowRight(ZArrowEnd end, int col, List<float> widths)
+		{
+			if (end.Expand)
+				while (Columns.Valid(col + 1) && Rows[end.Row].Valid(col + 1) && Rows[end.Row][col + 1].Empty() &&
+						!Columns[col + 1].Arrows.Exists(a => a.From.Exists(f => f.Row == end.Row) || a.To.Exists(t => t.Row == end.Row)))
+					col++;
+
+			return widths.Take(col + 1).Sum(w => w + 1) + 0.5F;
+		}
+
 		/// <summary>Draw one complete vertical arrow plus its horizontal ends.</summary>
-		void SvgArrow(StringBuilder s, int indent, ZColumn nextCol, Arrow arrow, float left, float width, float top, float rowHeight)
+		void SvgArrow(StringBuilder s, int indent, int col, Arrow arrow, List<float> widths, float top, float rowHeight)
 		{
 			if (arrow.From.Count == 0 && arrow.To.Count == 0)
 				return;
@@ -1026,39 +1063,38 @@ namespace Zoom
 
 			s.Append('\t', indent);
 
-			//var arrowWidthH = arrow.MaxWidth();  // In unscaled units.
 			var halfScaleWidth = arrow.MaxWidth() / rowHeight * 2;  // Scaling factor used to convert an unscaled arrow width into half a scaled arrow width. 
 			var halfArrowH = arrow.MaxWidth() * halfScaleWidth;  // Half the width of the vertical part of the arrow, in output SVG units.
 
-			if (arrow.From.Count == 1 && arrow.To.Count == 1 && !(arrow.From[0].Row == arrow.To[0].Row && arrow.From[0].Width == arrow.To[0].Width))
+			if (arrow.From.Count == 1 && arrow.To.Count == 1 && arrow.From[0].Width == arrow.To[0].Width)
 			{
 				var leftEnd = arrow.From[0];
 				var rightEnd = arrow.To[0];
-				var halfArrow = leftEnd.Width * halfScaleWidth;
+				float fullArrow = (float)(leftEnd.Width * halfScaleWidth * 2);
 
-				// Start at bottom of left end.
-				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left, RowMid(top, leftEnd.Row, rowHeight) + leftEnd.Width * halfScaleWidth);
-				// Draw left-side "From" end.
-				//s.AppendFormat("v {0:F1} ", halfArrow * 2);
+				float left = FindArrowLeft(leftEnd, col, widths);
+				float width = FindArrowRight(rightEnd, col, widths) - left;
 
-				// Draw lower edge curves.
 				var mid = (rightEnd.Row - leftEnd.Row) * rowHeight / 2;  // mid is -ve if the arrow is going up.
-				var adjust = Math.Sign(mid) * halfArrow;
-				s.AppendFormat("c {0:F1},0 {0:F1},{1:F1} {0:F1},{2:F1} ", width / 2 - halfArrow - adjust, mid, mid + adjust * 2);
-				s.AppendFormat("s 0,{1:F1} {0:F1},{1:F1} ", width / 2 - halfArrow + adjust, mid - adjust * 2);
+				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left, RowMid(top, leftEnd.Row, rowHeight));
 
-				// Paint a right end arrowhead, starting at its bottom left: down, up/right, up/left, down.
-				s.AppendFormat("v {0:F1} ", halfArrow);
-				s.AppendFormat("l {0:F1},{1:F1} ", halfArrow * 2, -halfArrow * 2);
-				s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow * 2);
-				s.AppendFormat("v {0:F1} ", halfArrow);
+				if (leftEnd == rightEnd)  // Draw the straight arrow line.
+					s.AppendFormat("h {0:F1}\" ", width);
+				else  // Draw the curved arrow line with two SVG "q" splines, like: <path d=\"M 100,100 h1 q3,0 6,11 q3,11 6,11 h1" stroke="color" stroke-width="4"/>
+					s.AppendFormat("h 1 q {0:F1},0 {1:F1},{2:F1} q {0:F1},{2:F1} {1:F1},{2:F1} h 1\" ", width / 4 - 1, width / 2 - 2, mid);
 
-				// Draw upper edge curves.
-				s.AppendFormat("c {0:F1},0 {0:F1},{1:F1} {0:F1},{2:F1} ", -width / 2 + halfArrow + adjust, -mid, -mid - adjust * 2);
-				s.AppendFormat("s 0,{1:F1} {0:F1},{1:F1} ", -width / 2 + halfArrow - adjust, -mid + adjust * 2);
+				s.AppendFormat("fill=\"none\" stroke-width=\"{0:F1}\" stroke=\"", fullArrow);
+				s.Append(System.Drawing.ColorTranslator.ToHtml(c));
+				s.Append("\" /> ");
+
+				s.AppendFormat("<path d=\"M {0:F1},{1:F1} ", left + width - fullArrow / 2F, RowMid(top, rightEnd.Row, rowHeight));
+				s.AppendFormat("v {0:F1} l {0:F1},{1:F1} l {1:F1},{1:F1} z\" fill=\"", fullArrow, -fullArrow);
 			}
 			else
 			{
+				float left = widths.Take(col).Sum(w => w + 1) + 0.5F;
+				float width = widths[col] + 0.5F;
+
 				if (topType == TopBottomType.Right)
 				{
 					// Start in the horizontal middle, draw the top left corner arc. 
@@ -1082,7 +1118,7 @@ namespace Zoom
 						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {1:F1},{0:F1} ", halfArrow, -halfArrow);
 					}
 					// Paint a left end: left, down, right.
-					s.AppendFormat("H {0:F1} ", left);
+					s.AppendFormat("H {0:F1} ", FindArrowLeft(end, col, widths));
 					s.AppendFormat("v {0:F1} ", halfArrow * 2);
 					if (end.Row != bottomRow)
 					{
@@ -1122,24 +1158,14 @@ namespace Zoom
 						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {0:F1},{1:F1} ", halfArrow, -halfArrow);
 					}
 
-					if (nextCol != null && nextCol.Arrows.Exists(r => r.From.Exists(f => f.Row == arrow.To[i].Row)))  // True if there's a arrow immediately to the right of this arrow end.
-					{
-						// Paint a simple right end, starting at its bottom left: right, up/right, up/left, left.
-						s.AppendFormat("H {0:F1} ", left + width + 1);
-						s.AppendFormat("l {0:F1},{1:F1} ", halfArrow, -halfArrow);
-						s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow);
-						s.AppendFormat("H {0:F1} ", left + width / 2 + halfArrowH + halfArrow);
-					}
-					else
-					{
-						// Paint a right end arrowhead, starting at its bottom left: right, down, up/right, up/left, down, left.
-						s.AppendFormat("H {0:F1} ", left + width - halfArrow);
-						s.AppendFormat("v {0:F1} ", halfArrow);
-						s.AppendFormat("l {0:F1},{1:F1} ", halfArrow * 2, -halfArrow * 2);
-						s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow * 2);
-						s.AppendFormat("v {0:F1} ", halfArrow);
-						s.AppendFormat("H {0:F1} ", left + width / 2 + halfArrowH + halfArrow);
-					}
+					// Paint a right end arrowhead, starting at its bottom left: right, down, up/right, up/left, down, left.
+					s.AppendFormat("H {0:F1} ", FindArrowRight(end, col, widths) - halfArrow);
+					s.AppendFormat("v {0:F1} ", halfArrow);
+					s.AppendFormat("l {0:F1},{1:F1} ", halfArrow * 2, -halfArrow * 2);
+					s.AppendFormat("l {0:F1},{0:F1} ", -halfArrow * 2);
+					s.AppendFormat("v {0:F1} ", halfArrow);
+					s.AppendFormat("H {0:F1} ", left + width / 2 + halfArrowH + halfArrow);
+
 					if (end.Row != topRow)
 						s.AppendFormat("a {0:F1},{0:F1} 0 0 1 {1:F1},{1:F1} ", halfArrow, -halfArrow);
 				}
@@ -1152,8 +1178,8 @@ namespace Zoom
 				}
 				else if (topType == TopBottomType.Both && arrow.From.First().Width != arrow.To.First().Width)
 					s.AppendFormat("c {0:F1},0 {0:F1},{2:F1} {1:F1},{2:F1} ", -halfArrowH, -halfArrowH * 2, (arrow.To.First().Width - arrow.From.First().Width) / 2);
+				s.Append("Z\" fill=\"");
 			}
-			s.Append("Z\" fill=\"");
 			s.Append(System.Drawing.ColorTranslator.ToHtml(c));
 			s.Append("\" />\n");
 		}
@@ -1260,25 +1286,25 @@ namespace Zoom
 				{
 					s.Append("\t");
 
-					//if (!pure && !string.IsNullOrEmpty(hyper))
-					//	AppendStrings(s, "<a xlink:href=\"", hyper, "\">");
+					if (!pure && !string.IsNullOrEmpty(column.Hyper))
+						AppendStrings(s, "<a xlink:href=\"", column.Hyper, "\">");
 
 					// Draw text inside parallelogram.
 					s.Append("<text ");
 
-					//if (!pure && !string.IsNullOrEmpty(hyper))
+					//if (!pure && !string.IsNullOrEmpty(column.Hyper))
 					//	s.Append("text-decoration=\"underline\" ");
 
 					s.AppendFormat("text-anchor=\"end\" x=\"{0:F0}\" y=\"{1:F0}\" width=\"{2:F0}\" transform=\"rotate(45 {0:F0},{1:F0})\" font-size=\"{3}\" fill=\"",
-								   x + (widths[col] - rowHeight) / 2, rowTop + headerHeight - 3, headerHeight * 1.4, rowHeight * 3 / 4);
+								   x + (widths[col] - rowHeight) / 2, rowTop + headerHeight - 3, headerHeight * 1.41 - rowHeight * 3 / 4, rowHeight * 3 / 4);
 					s.Append(System.Drawing.ColorTranslator.ToHtml(textColor));
 					s.Append("\">");
 
 					s.Append(WebUtility.HtmlEncode(column.Text));
 					s.Append("</text>");
 
-					//if (!pure && !string.IsNullOrEmpty(hyper))
-					//	s.Append("</a>");
+					if (!pure && !string.IsNullOrEmpty(column.Hyper))
+						s.Append("</a>");
 					s.Append("\n");
 				}
 				else  // Paint column heading text flat.
@@ -1323,13 +1349,19 @@ namespace Zoom
 			return 1 / Math.Sqrt(2 * Math.PI * variance) * Math.Exp(-Math.Pow(x - mean, 2) / 2 / variance);
 		}
 
-		void SvgChart(StringBuilder s, int top, int height, double left, double width, double chartMin, double chartMax, int maxPoints, Color backColor, Color chartColor, ZCell cell, int column, bool lastRow)
+		void SvgChart(StringBuilder s, int top, int height, double left, double width, double chartMin, double chartMax, int maxPoints, Color backColor, Color chartColor, ZCell cell, ZRow row, int column, bool lastRow)
 		{
 			if (cell.Color != Color.Empty)
 				SvgRect(s, 1, left, top, width, height, backColor);  // Paint chart cell(s) background.
 
 			if ((cell.ChartType == ChartType.None || cell.ChartType.HasFlag(ChartType.Bar)) && cell.Number != null)  // Bar
-				SvgRect(s, 1, left + Scale(0, width, chartMin, chartMax), top, ScaleWidth(cell.Number ?? 0, width, 0, chartMax - chartMin), height, chartColor);  // Paint bar.
+			{
+				double? fill = ScaleWidth(cell.Number ?? 0, 1, 0, chartMax - chartMin);
+				if (CalculateFill != null)
+					CalculateFill?.Invoke(row, column, chartMin, chartMax, ref fill);
+				if (fill != null)
+					SvgRect(s, 1, left + Scale(0, width, chartMin, chartMax), top, (double)fill * width, height, chartColor);  // Paint bar.
+			}
 
 			int count = 0;
 			if (cell.ChartType.HasFlag(ChartType.Rug) || cell.ChartType.HasFlag(ChartType.BoxPlot) || 
@@ -1526,7 +1558,7 @@ namespace Zoom
 				if (sourceCell.Color != Color.Empty || sourceCell.ChartCell != null)
 					SvgChart(s, top, height, widths.Take(start).Sum() + start + 1, widths.Skip(start).Take(end - start + 1).Sum() + end - start,
 					         MaxChartByColumn ? mins[barSource] : mins.Min(), MaxChartByColumn ? maxs[barSource] : maxs.Max(), maxPoints,
-					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(Colors.GetBackColor(row, odd), Colors.BarNone), sourceCell, barSource, row == Rows.Last());
+					         Colors.GetBackColor(row, odd, sourceCell.Color), sourceCell.GetBarColor(Colors.GetBackColor(row, odd), Colors.BarNone), sourceCell, row, barSource, row == Rows.Last());
 
 				start = end + 1;
 			}
@@ -1581,7 +1613,7 @@ namespace Zoom
 
 			for (int col = 0; col < Columns.Count; col++)
 				foreach (var arrow in Columns[col].Arrows.OrderByDescending(a => (a.From.Count + a.To.Count) * 100 + Math.Abs((a.From.FirstOrDefault()?.Row - a.To.FirstOrDefault()?.Row) ?? 0)))
-					SvgArrow(sb, 1, col + 1 == Columns.Count ? null : Columns[col + 1], arrow, widths.Take(col).Sum(w => w + 1) + 0.5F, widths[col] + 0.5F, arrowTop - 0.5F, rowHeight + 1);
+					SvgArrow(sb, 1, col, arrow, widths, arrowTop - 0.5F, rowHeight + 1);
 
 			sb.Replace("<<<<<<<<", rowTop.ToString());
 			sb.Append("</svg>\n");
