@@ -1175,8 +1175,6 @@ namespace Torn
 
 				foreach (var team in game.Teams)
 				{
-					Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-					Console.WriteLine(team.TeamId ?? -1);
 					XmlNode teamNode = doc.CreateElement("team");
 					teamsNode.AppendChild(teamNode);
 
