@@ -746,7 +746,7 @@ namespace Torn
 				leagueTeam = GuessTeam(teamData.Players.Select(x => x.PlayerId).ToList());
 			
 			if (leagueTeam == null)
-			{
+			{ 
 				leagueTeam = new LeagueTeam
 				{
 					TeamId = NextTeamId()
@@ -788,6 +788,7 @@ namespace Torn
 
 		public string CommitGame(ServerGame serverGame, List<GameTeamData> teamDatas, GroupPlayersBy groupPlayersBy)
 		{
+			Load(FileName);
 			var debug = new StringBuilder();
 			if (serverGame.Game == null)
 			{
@@ -1155,6 +1156,7 @@ namespace Torn
 			XmlNode gamesNode = doc.CreateElement("games");
 			bodyNode.AppendChild(gamesNode);
 
+
 			foreach (var game in AllGames)
 			{
 				XmlNode gameNode = doc.CreateElement("game");
@@ -1173,6 +1175,8 @@ namespace Torn
 
 				foreach (var team in game.Teams)
 				{
+					Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+					Console.WriteLine(team.TeamId ?? -1);
 					XmlNode teamNode = doc.CreateElement("team");
 					teamsNode.AppendChild(teamNode);
 
