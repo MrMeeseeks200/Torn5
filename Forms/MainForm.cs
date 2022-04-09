@@ -86,6 +86,9 @@ namespace Torn.UI
 
 		string serverAddress = "localhost";
 
+		string serverPort = "12123";
+
+
 		int webPort;
 		WebOutput webOutput;
 		LaserGameServer laserGameServer;
@@ -186,7 +189,7 @@ namespace Torn.UI
 					break;
 					case SystemType.Nexus: laserGameServer = new PAndCNexusWithIButton(serverAddress);  break;
 					case SystemType.Zeon: laserGameServer = new PAndC(serverAddress);  break;
-					case SystemType.OZone: laserGameServer = new OZone(serverAddress);  break;
+					case SystemType.OZone: laserGameServer = new OZone(serverAddress, serverPort);  break;
 					case SystemType.Torn:
 						laserGameServer = new JsonServer(serverAddress);
 						timeElapsed = laserGameServer.GameTimeElapsed();
@@ -630,6 +633,7 @@ namespace Torn.UI
 
 				SystemType = systemType,
 				ServerAddress = serverAddress,
+				ServerPort = serverPort,
 				WindowsAuth = windowsAuth,
 				Sqluser = sqlUserId,
 				SqlPassword = sqlPassword,
@@ -650,6 +654,7 @@ namespace Torn.UI
 
 				systemType = form.SystemType;
 				serverAddress = form.ServerAddress;
+				serverPort = form.ServerPort;
 				windowsAuth = form.WindowsAuth;
 				sqlUserId = form.Sqluser;
 				sqlPassword = form.SqlPassword;
@@ -1330,6 +1335,7 @@ namespace Torn.UI
 			Enum.TryParse(root.GetString("SystemType", "Acacia"), out systemType);
 			Enum.TryParse(root.GetString("GroupPlayersBy", "Colour"), out groupPlayersBy);
 			serverAddress = root.GetString("GameServerAddress", "localhost");
+			serverPort = root.GetString("GameServerPort", "12123");
 			windowsAuth = root.GetString("Auth", "") == "windows";
 			sqlUserId = root.GetString("SqlUserId");
 			sqlPassword = root.GetString("SqlPassword");
@@ -1372,6 +1378,7 @@ namespace Torn.UI
 			}
 			doc.AppendNode(bodyNode, "GroupPlayersBy", groupPlayersBy.ToString());
 			doc.AppendNode(bodyNode, "GameServerAddress", serverAddress);
+			doc.AppendNode(bodyNode, "GameServerPort", serverPort);
 			doc.AppendNode(bodyNode, "WebServerPort", webPort.ToString());
 			doc.AppendNode(bodyNode, "ExportFolder", exportFolder);
 			if (listViewLeagues.SelectedItems.Count > 0)
