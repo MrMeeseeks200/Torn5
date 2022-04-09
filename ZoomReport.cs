@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using Svg;
 
 namespace Zoom
 {
@@ -527,6 +530,21 @@ namespace Zoom
 					RemoveColumn(i);
 		}
 
+		/// <summary>Return the largest number of arrows starting in, ending in, or crossing a row.</summary>
+		int MaxArrowCount(int col)
+		{
+			var rowsCrossed = new List<int>();
+			foreach (var arrow in Columns[col].Arrows)
+			{
+				int min = Math.Min(arrow.From.Min(x => x.Row), arrow.To.Min(x => x.Row));
+				int max = Math.Max(arrow.From.Max(x => x.Row), arrow.To.Max(x => x.Row));
+				for (int i = min; i <= max; i++)
+					rowsCrossed.Add(i);
+			}
+
+			return rowsCrossed.Any() ? rowsCrossed.GroupBy(r => r).Max(g => g.Count()) : 0;
+		}
+
 		/// <summary>For each column, calculate a pixel width, and find the min and max values.</summary>
 		void Widths(List<float> widths, List<double> mins, List<double> maxs, out int maxPoints)
 		{
@@ -536,7 +554,8 @@ namespace Zoom
 
 			for (int col = 0; col < Columns.Count; col++)
 			{
-				float widest = Columns[col].Arrows.Any() ? 15 : 1;
+				int maxArrows = MaxArrowCount(col);
+				float widest = maxArrows == 0 ? 1 : maxArrows <= 3 ? 15 : maxArrows * 5; //Columns[col].Arrows.Any() ? 15 : 1;
 				float total = widest;
 				int count = 1;
 				double min = 0.0;
@@ -615,6 +634,34 @@ namespace Zoom
 		{
 			return Rows.SelectMany(row => row.Where(cell => cell.ChartCell != null)
 			                   .Select(cell => cell.GetBarColor())).Distinct();
+		}
+
+		SvgDocument document;
+		/// <summary>Render a report to bitmap. If report has different aspect ratio to width/height, then returned bitmap will be either narrower than width, or shorter than height.</summary>
+		/// <param name="width">Maximum width to render.</param>
+		/// <param name="height">Maximum height to render.</param>
+		/// <returns>The bitmap.</returns>
+		public Bitmap ToBitmap(int width, int height)
+		{
+			if (document == null)
+				using (StringWriter sw = new StringWriter())
+				{
+					sw.Write(ToSvg(true));
+					document = SvgDocument.FromSvg<SvgDocument>(sw.ToString());
+				}
+			double aspectRatio = document.ViewBox.Width / document.ViewBox.Height;
+
+			if (aspectRatio > 1.0 * width / height)
+			{
+				document.Width = new SvgUnit(SvgUnitType.Pixel, width);
+				document.Height = new SvgUnit(SvgUnitType.Pixel, (int)(width / aspectRatio));
+			}
+			else
+			{
+				document.Width = new SvgUnit(SvgUnitType.Pixel, (int)(height * aspectRatio));
+				document.Height = new SvgUnit(SvgUnitType.Pixel, height);
+			}
+			return document.Draw();
 		}
 
 		public override string ToCsv(char separator)
@@ -808,6 +855,29 @@ namespace Zoom
 			return s.ToString();
 		}
 
+		public PrintDocument ToPrint()
+		{
+			var pd = new PrintDocument();
+			pd.PrintPage += new PrintPageEventHandler(this.PrintPage);
+			pd.OriginAtMargins = true;
+			return pd;
+		}
+
+		private void PrintPage(object sender, PrintPageEventArgs ev)
+		{
+			var bounds = ev.MarginBounds;
+			var image = ToBitmap((int)(bounds.Width * ev.PageSettings.PrinterResolution.X / 100), (int)(bounds.Height * ev.PageSettings.PrinterResolution.Y / 100));  // Page dimensions are in 1/100ths of an inch.
+			float imageRatio = 1.0F * image.Width / image.Height;
+			float pageRatio = 1.0F * bounds.Width / bounds.Height;
+			if (imageRatio > pageRatio)  // Report is wider than page: leave white space at bottom of page.
+				ev.Graphics.DrawImage(image, 0, 0, bounds.Width, bounds.Width / imageRatio);
+			else  // Report is taller than page: leave space at left and right.
+			{
+				float newWidth = bounds.Height * imageRatio;
+				ev.Graphics.DrawImage(image, (bounds.Width - newWidth) / 2, 0, newWidth, bounds.Height);
+			}
+		}
+
 		// Write a <rect> tag, and a <text> tag on top of it.
 		void SvgRectText(StringBuilder s, int indent, double x, double y, double width, double height, Color fontColor, Color backColor, Color barColor, ZAlignment alignment, string text)
 		{
@@ -888,7 +958,8 @@ namespace Zoom
 		}
 
 		/// <summary>This overload formats the value of a cell then calls the other overload.
-		/// If you specify a format starting with 'E' or 'G', it changes values like 0.0000123 to a style like 1.23x10^-5, but with Unicode superscript digits.</summary>
+		/// If you specify a format starting with 'E' or 'G', it changes values like 0.0000123 to a style like 1.23x10^-5, but with Unicode superscript digits.
+		/// Special format lowercase 'f' will trim trailing 0's after a deciaml, so "1.00" becomes "1"; "1.20" becomes "1.2".</summary>
 		void SvgText(StringBuilder s, int indent, int x, int y, int width, int height, ZColumn column, ZCell cell, bool pure)
 		{
 			if (cell.Empty())
@@ -1770,6 +1841,66 @@ namespace Zoom
 
 			sb.Append("</body>\n");
 			return sb.ToString();
+		}
+
+		List<List<Bitmap>> images = new List<List<Bitmap>>();  // Each List<Bitmap> represents one page worth of reports.
+		int pageNumber = 0;
+		public PrintDocument ToPrint()
+		{
+			var pd = new PrintDocument();
+			pd.PrintPage += new PrintPageEventHandler(this.PrintPage);
+			pd.OriginAtMargins = true;
+			return pd;
+		}
+
+		private void PrintPage(object sender, PrintPageEventArgs ev)
+		{
+			var bounds = ev.MarginBounds;
+			List<Bitmap> page;
+
+			if (!images.Any())  // This code runs on the first call of PrintPage, to build the list of images that need to be printed.
+			{
+				page = new List<Bitmap>();
+				images.Add(page);
+				foreach (ZoomReportBase report in this)
+				{
+					if (report is ZoomReport r)
+						page.Add(r.ToBitmap((int)(bounds.Width * ev.PageSettings.PrinterResolution.X / 100), (int)(bounds.Height * ev.PageSettings.PrinterResolution.Y / 100)));
+					else if (report is ZoomSeparator)
+					{
+						page = new List<Bitmap>();
+						images.Add(page);
+					}
+				}
+				pageNumber = 0;
+			}
+
+			page = images[pageNumber];
+			var totalHeight = page.Sum(i => i.Height + 50) - 50;  // If there are several images on each page, put 50 "pixels" between them. These "pixels" are in the SVG's internal scale; i.e. about the height of two rows.
+			float scale = 1.0F * totalHeight / bounds.Height;
+			float top = 0;
+
+			foreach (var image in page)
+			{
+				float pagePart = 1.0F * image.Height / totalHeight;  // How much of the available page height is dedicated to this image? From 0 to 1.
+				float imageAspectRatio = 1.0F * image.Width / image.Height;
+				float pagePartAspectRatio = 1.0F * bounds.Width / bounds.Height / pagePart;
+				if (imageAspectRatio > pagePartAspectRatio)  // Report is wider than page part: use that full width but not the full height.
+				{
+					ev.Graphics.DrawImage(image, 0, top, bounds.Width, bounds.Width / imageAspectRatio);
+					top += bounds.Width / imageAspectRatio + 50 / scale;
+				}
+				else  // Report is taller than page: leave space at left and right.
+				{
+					float newHeight = bounds.Height * pagePart;
+					float newWidth = newHeight * imageAspectRatio;
+					ev.Graphics.DrawImage(image, (bounds.Width - newWidth) / 2, top, newWidth, newHeight);
+					top += newHeight + 50 / scale;
+				}
+			}
+
+			pageNumber++;
+			ev.HasMorePages = pageNumber < images.Count;
 		}
 
 		public string ToSvg()

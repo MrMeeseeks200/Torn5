@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -134,7 +135,8 @@ namespace Torn.UI
 			webOutput = new WebOutput(webPort)
 			{
 				Leagues = leagues,
-				Elapsed = Elapsed
+				Elapsed = Elapsed,
+				ExportFolder = exportFolder
 			};
 
 			playersBox = new PlayersBox
@@ -470,6 +472,28 @@ namespace Torn.UI
 			}
 		}
 
+		private void ButtonPrintReportsClick(object sender, EventArgs e)
+		{
+			if (listViewLeagues.SelectedItems.Count > 0)
+			{
+				var holder = (Holder)listViewLeagues.SelectedItems[0].Tag;
+				PrintDocument pd;
+				Cursor.Current = Cursors.WaitCursor;
+				try
+				{
+					pd = ReportPages.OverviewReports(holder, true).ToPrint();
+				}
+				finally
+				{
+					Cursor.Current = Cursors.Default;
+				}
+
+				pd.DocumentName = holder.League.Title;
+				if (printDialog.ShowDialog() == DialogResult.OK)
+					pd.Print();
+			}
+		}
+
 		ReportTemplate adhocReportTemplate;
 		private void ButtonAdHocReportClick(object sender, EventArgs e)
 		{
@@ -598,6 +622,7 @@ namespace Torn.UI
 				GroupPlayersBy = groupPlayersBy,
 				AutoUpdateScoreboard = autoUpdateScoreboard,
 				AutoUpdateTeams = autoUpdateTeams,
+				ReportsFolder = exportFolder,
 				UploadMethod = uploadMethod,
 				UploadSite = uploadSite,
 				Username = username,
@@ -617,6 +642,7 @@ namespace Torn.UI
 				groupPlayersBy = form.GroupPlayersBy;
 				autoUpdateScoreboard = form.AutoUpdateScoreboard;
 				autoUpdateTeams = form.AutoUpdateTeams;
+				exportFolder = form.ReportsFolder;
 				uploadMethod = form.UploadMethod;
 				uploadSite = form.UploadSite;
 				username = form.Username;
@@ -692,11 +718,6 @@ namespace Torn.UI
 				league.Save();
 		}
 
-		void ButtonSetExportFolderClick(object sender, EventArgs e)
-		{
-			GetExportFolder("Select a root folder for bulk export of league reports.", true);
-		}
-
 		void ButtonUploadClick(object sender, EventArgs e)
 		{
 			if (string.IsNullOrEmpty(uploadMethod) || string.IsNullOrEmpty(uploadSite) || string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
@@ -715,24 +736,19 @@ namespace Torn.UI
 			}
 		}
 
-		bool GetExportFolder(string message = "", bool showDialog = false)
+		bool GetExportFolder()
 		{
-			if (!showDialog && !string.IsNullOrEmpty(exportFolder))
+			if (!string.IsNullOrEmpty(exportFolder))
 				return true;
 
-			if (!string.IsNullOrEmpty(message))
-				folderBrowserDialog1.Description = message;
-			else if (listViewLeagues.SelectedItems.Count == 1)
-				folderBrowserDialog1.Description = "Select a root folder for bulk export of " + listViewLeagues.SelectedItems[0].SubItems[1].Text;
-			else
-				folderBrowserDialog1.Description = "Select a root folder for bulk export of the " + listViewLeagues.SelectedItems.Count.ToString(CultureInfo.CurrentCulture) + " selected leagues.";
-
+			folderBrowserDialog1.Description = "Select a root folder for export of reports.";
 			folderBrowserDialog1.SelectedPath = exportFolder;
 
 			bool result = folderBrowserDialog1.ShowDialog() == DialogResult.OK;
 			if (result)
 			{
 				exportFolder = folderBrowserDialog1.SelectedPath;
+				webOutput.ExportFolder = exportFolder;
 			}
 			return result;
 		}

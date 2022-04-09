@@ -163,6 +163,16 @@ namespace Torn5.Forms {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap buttonPrintReports_Image {
+            get {
+                object obj = ResourceManager.GetObject("buttonPrintReports.Image", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap buttonRemoveColumn_Image {
             get {
                 object obj = ResourceManager.GetObject("buttonRemoveColumn.Image", resourceCulture);
@@ -176,16 +186,6 @@ namespace Torn5.Forms {
         internal static System.Drawing.Bitmap buttonRemoveRow_Image {
             get {
                 object obj = ResourceManager.GetObject("buttonRemoveRow.Image", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap buttonSetFolder_Image {
-            get {
-                object obj = ResourceManager.GetObject("buttonSetFolder.Image", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -261,6 +261,16 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=283,Y=50}.
+        /// </summary>
+        internal static System.Drawing.Point printDialog_TrayLocation {
+            get {
+                object obj = ResourceManager.GetObject("printDialog.TrayLocation", resourceCulture);
+                return ((System.Drawing.Point)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Point similar to {X=20,Y=48}.
         /// </summary>
         internal static System.Drawing.Point saveFileDialog1_TrayLocation {
@@ -301,7 +311,7 @@ namespace Torn5.Forms {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=962,Y=41}.
+        ///   Looks up a localized resource of type System.Drawing.Point similar to {X=696,Y=49}.
         /// </summary>
         internal static System.Drawing.Point toolStripReports_TrayLocation {
             get {
