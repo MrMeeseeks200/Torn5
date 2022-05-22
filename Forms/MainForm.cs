@@ -890,7 +890,7 @@ namespace Torn.UI
 					{
 						teamBoxes[box].LeagueTeam = league.LeagueTeam(gameTeam);
 						teamBoxes[box].GameTeam = gameTeam;
-						 teamBoxes[box].Accept(serverPlayers);
+						teamBoxes[box].Accept(serverPlayers);
 						box++;
 					}
 				}
