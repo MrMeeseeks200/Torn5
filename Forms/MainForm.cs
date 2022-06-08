@@ -153,8 +153,9 @@ namespace Torn.UI
 
 			formPlayer = new FormPlayer
 			{
-				Icon = (Icon)Icon.Clone()
+				Icon = (Icon)Icon.Clone(),
 			};
+
 			ConnectLaserGameServer();
 
 			AddTeamBoxes();
@@ -924,6 +925,7 @@ namespace Torn.UI
 					laserGameServer.PopulateGame(game);
 
 				playersBox.LoadGame(activeHolder?.League, game);
+				formPlayer.CurrentLeague = activeHolder?.League;
 
 				TransferPlayers(game);
 			}
