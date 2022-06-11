@@ -381,6 +381,7 @@ namespace Torn
 		public int? TeamId { get; set; }
 		/// <summary>Under-the-hood laser game system identifier e.g. "P11-JP9", "1-50-50", etc. Same as LeaguePlayer.Id.</summary>
 		public string PlayerId { get; set; }
+		public string qrcode { get; set; }
 		public string Pack { get; set; }
 		public double Score { get; set; }
 		public uint Rank { get; set; }
@@ -418,6 +419,7 @@ namespace Torn
 		{
 			target.TeamId = TeamId;
 			target.PlayerId = PlayerId;
+			target.qrcode = qrcode;
 			target.Pack = Pack;
 			target.Score = Score;
 			target.Rank = Rank;
@@ -463,7 +465,7 @@ namespace Torn
 
 		public override string ToString()
 		{
-			return "GamePlayer " + PlayerId;
+			return "GamePlayer " + PlayerId + "qr: " + qrcode;
 		}
 	}
 
@@ -1037,6 +1039,7 @@ namespace Torn
 					GamePlayer gamePlayer = new GamePlayer
 					{
 						PlayerId = xplayer.GetString("playerid"),
+						qrcode = xplayer.GetString("qrcode"),
 						TeamId = xplayer.GetInt("teamid"),
 						Pack = xplayer.GetString("pack"),
 						Score = xplayer.GetInt("score"),
@@ -1196,6 +1199,7 @@ namespace Torn
 
 					doc.AppendNode(playerNode, "teamid", player.TeamId ?? -1);
 					doc.AppendNode(playerNode, "playerid", player.PlayerId);
+					doc.AppendNode(playerNode, "qrcode", player.qrcode);
 					doc.AppendNode(playerNode, "pack", player.Pack);
 					doc.AppendNonZero(playerNode, "score", player.Score);
 					doc.AppendNode(playerNode, "rank", (int)player.Rank);
@@ -1469,6 +1473,7 @@ namespace Torn
 	{
 		public DateTime Time;
 		public string ServerPlayerId;  // ID of player that this record is about
+		public string qrcode;  // QR code from ozone of player that this record is about
 		public int ServerTeamId;  // team of that player
 		public int Event_Type;  // see below
 		public int Score;  // points gained by shooter
@@ -1598,7 +1603,7 @@ namespace Torn
 	}
 
 	/// <summary>Represents a player as stored on the laser game server.</summary>
-	public class ServerPlayer: GamePlayer
+	public class ServerPlayer : GamePlayer
 	{
 		public string ServerPlayerId { get; set; }  // This is the under-the-hood PAndC table ID field.
 		public int ServerTeamId { get; set; }   // Ditto. These two are only used by systems with in-game data available.
