@@ -70,6 +70,7 @@ namespace Torn.UI
 	public partial class MainForm : Form
 	{
 		GroupPlayersBy groupPlayersBy = GroupPlayersBy.Colour;
+        GameType gameType = GameType.Teams;
 		//SortTeamsBy sortTeamsBy;
 		bool autoUpdateScoreboard = true;
 		bool autoUpdateTeams = true;
@@ -272,26 +273,78 @@ namespace Torn.UI
 		void EnableRemoveRowColumnButtons()
 		{
 			ribbonButtonRemoveColumn.Enabled = tableLayoutPanel1.ColumnCount > 4;
-			ribbonButtonRemoveRow.Enabled = tableLayoutPanel1.RowCount > 1;
+			ribbonButtonRemoveRow.Enabled = tableLayoutPanel1.RowCount > 2;
+		}
+
+		void EnableAddRowColumnButtons()
+		{
+			ribbonButtonAddColumn.Enabled = true;
+			ribbonButtonAddRow.Enabled = true;
+		}
+
+		void DisableRowColumnButtons()
+		{
+			ribbonButtonRemoveColumn.Enabled = false;
+			ribbonButtonRemoveRow.Enabled = false;
+			ribbonButtonAddRow.Enabled = false;
+			ribbonButtonAddColumn.Enabled = false;
 		}
 
 		void AddTeamBoxes()
 		{
-			while(tableLayoutPanel1.Controls.Count - 3 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
+			if (gameType == GameType.Teams)
 			{
-				TeamBox teamBox = new TeamBox
+				EnableAddRowColumnButtons();
+				while (tableLayoutPanel1.Controls.Count - 3 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
 				{
-					League = activeHolder?.League,
-					Images = imageListPacks,
-					GetMoveTarget = FindEmptyTeamBox,
-					RankTeams = RankTeamBoxes,
-					SortTeamsByRank = ArrangeTeamsByRank,
-					FormPlayer = formPlayer
-				};
-				tableLayoutPanel1.Controls.Add(teamBox);
-				teamBox.Dock = DockStyle.Fill;
+					TeamBox teamBox = new TeamBox
+					{
+						League = activeHolder?.League,
+						Images = imageListPacks,
+						GetMoveTarget = FindEmptyTeamBox,
+						RankTeams = RankTeamBoxes,
+						SortTeamsByRank = ArrangeTeamsByRank,
+						FormPlayer = formPlayer
+					};
+					tableLayoutPanel1.Controls.Add(teamBox);
+					teamBox.Dock = DockStyle.Fill;
+				}
+				Console.WriteLine(tableLayoutPanel1.RowCount);
+				Console.WriteLine(tableLayoutPanel1.ColumnCount);
+				if (tableLayoutPanel1.RowCount == 1 && tableLayoutPanel1.ColumnCount == 4)
+                {
+					tableLayoutPanel1.RowCount++;
+					SetRowSpans(0);
+					if (tableLayoutPanel1.RowStyles.Count < tableLayoutPanel1.RowCount)
+						tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent));
+					foreach (RowStyle rowStyle in tableLayoutPanel1.RowStyles)
+						rowStyle.Height = 100 / tableLayoutPanel1.RowCount;
+					TeamBox teamBox = new TeamBox
+					{
+						League = activeHolder?.League,
+						Images = imageListPacks,
+						GetMoveTarget = FindEmptyTeamBox,
+						RankTeams = RankTeamBoxes,
+						SortTeamsByRank = ArrangeTeamsByRank,
+						FormPlayer = formPlayer
+					};
+					tableLayoutPanel1.Controls.Add(teamBox);
+					teamBox.Dock = DockStyle.Fill;
+				}
+				EnableRemoveRowColumnButtons();
+			} else
+            {
+				DisableRowColumnButtons();
+				while (tableLayoutPanel1.RowCount > 1)
+				{
+					for (int i = 0; i < tableLayoutPanel1.ColumnCount - 3; i++)
+						tableLayoutPanel1.Controls.RemoveAt(tableLayoutPanel1.Controls.Count - 1);
+
+					SetRowSpans(-1);
+					tableLayoutPanel1.RowCount--;
+					EnableRemoveRowColumnButtons();
+				}
 			}
-			EnableRemoveRowColumnButtons();
 		}
 
 		void ButtonAboutClick(object sender, EventArgs e)
@@ -628,6 +681,7 @@ namespace Torn.UI
 			{
 				Icon = (Icon)Icon.Clone(),
 				GroupPlayersBy = groupPlayersBy,
+				GameType = gameType,
 				AutoUpdateScoreboard = autoUpdateScoreboard,
 				AutoUpdateTeams = autoUpdateTeams,
 				ReportsFolder = exportFolder,
@@ -649,6 +703,7 @@ namespace Torn.UI
 			if (form.ShowDialog() == DialogResult.OK)
 			{
 				groupPlayersBy = form.GroupPlayersBy;
+				gameType = form.GameType;
 				autoUpdateScoreboard = form.AutoUpdateScoreboard;
 				autoUpdateTeams = form.AutoUpdateTeams;
 				exportFolder = form.ReportsFolder;
@@ -673,6 +728,7 @@ namespace Torn.UI
 				webPort = form.WebPort;
 				if (webOutput != null)
 					webOutput.Restart(webPort);
+				AddTeamBoxes();
 			}
 		}
 
@@ -845,9 +901,13 @@ namespace Torn.UI
 		List<TeamBox> TeamBoxes()
 		{
 			var teamBoxes = new List<TeamBox>();
+
 			foreach (Control c in tableLayoutPanel1.Controls)
 				if (c is TeamBox teamBox)
-					teamBoxes.Add(teamBox);
+					if((teamBoxes.Count() > 0 && gameType == GameType.Teams) || teamBoxes.Count() < 1)
+                    {
+						teamBoxes.Add(teamBox);
+					}
 
 			return teamBoxes;
 		}

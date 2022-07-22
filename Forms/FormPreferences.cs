@@ -5,6 +5,7 @@ using System.Windows.Forms;
 namespace Torn.UI
 {
 	public enum SystemType { Nexus, Zeon, OZone, Laserforce, Torn, Demo };
+	public enum GameType { Teams, Solos, Lotrs };
 
 	/// <summary>Prefs Form.</summary>
 	public partial class FormPreferences : Form
@@ -59,6 +60,26 @@ namespace Torn.UI
 					case GroupPlayersBy.Alias:  radioAlias.Checked  = true;  break;
 					case GroupPlayersBy.Lotr:   radioLotr.Checked   = true;  break;
 					default:                    radioColour.Checked = true;  break;
+				}
+			}
+		}
+
+		public GameType GameType
+		{
+			get
+			{
+				if (radioSolos.Checked) return GameType.Solos;
+				if (radioLotrs.Checked) return GameType.Lotrs;
+				return GameType.Teams;
+			}
+
+			set
+			{
+				switch (value)
+				{
+					case GameType.Solos: radioSolos.Checked = true; break;
+					case GameType.Lotrs: radioLotrs.Checked = true; break;
+					default: radioTeams.Checked = true; break;
 				}
 			}
 		}
