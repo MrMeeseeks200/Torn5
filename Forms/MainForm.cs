@@ -904,10 +904,7 @@ namespace Torn.UI
 
 			foreach (Control c in tableLayoutPanel1.Controls)
 				if (c is TeamBox teamBox)
-					if((teamBoxes.Count() > 0 && gameType == GameType.Teams) || teamBoxes.Count() < 1)
-                    {
-						teamBoxes.Add(teamBox);
-					}
+					teamBoxes.Add(teamBox);
 
 			return teamBoxes;
 		}
