@@ -270,14 +270,10 @@ namespace Torn.UI
 			}		
 		}
 
-		void EnableRemoveRowColumnButtons()
+		void EnableRowColumnButtons()
 		{
 			ribbonButtonRemoveColumn.Enabled = tableLayoutPanel1.ColumnCount > 4;
 			ribbonButtonRemoveRow.Enabled = tableLayoutPanel1.RowCount > 2;
-		}
-
-		void EnableAddRowColumnButtons()
-		{
 			ribbonButtonAddColumn.Enabled = true;
 			ribbonButtonAddRow.Enabled = true;
 		}
@@ -292,9 +288,6 @@ namespace Torn.UI
 
 		void AddTeamBoxes()
 		{
-			if (gameType == GameType.Teams)
-			{
-				EnableAddRowColumnButtons();
 				while (tableLayoutPanel1.Controls.Count - 3 < tableLayoutPanel1.RowCount * (tableLayoutPanel1.ColumnCount - 3))
 				{
 					TeamBox teamBox = new TeamBox
@@ -309,8 +302,6 @@ namespace Torn.UI
 					tableLayoutPanel1.Controls.Add(teamBox);
 					teamBox.Dock = DockStyle.Fill;
 				}
-				Console.WriteLine(tableLayoutPanel1.RowCount);
-				Console.WriteLine(tableLayoutPanel1.ColumnCount);
 				if (tableLayoutPanel1.RowCount == 1 && tableLayoutPanel1.ColumnCount == 4)
                 {
 					tableLayoutPanel1.RowCount++;
@@ -331,20 +322,7 @@ namespace Torn.UI
 					tableLayoutPanel1.Controls.Add(teamBox);
 					teamBox.Dock = DockStyle.Fill;
 				}
-				EnableRemoveRowColumnButtons();
-			} else
-            {
-				DisableRowColumnButtons();
-				while (tableLayoutPanel1.RowCount > 1)
-				{
-					for (int i = 0; i < tableLayoutPanel1.ColumnCount - 3; i++)
-						tableLayoutPanel1.Controls.RemoveAt(tableLayoutPanel1.Controls.Count - 1);
-
-					SetRowSpans(-1);
-					tableLayoutPanel1.RowCount--;
-					EnableRemoveRowColumnButtons();
-				}
-			}
+				EnableRowColumnButtons();
 		}
 
 		void ButtonAboutClick(object sender, EventArgs e)
@@ -375,7 +353,7 @@ namespace Torn.UI
 
 				SetRowSpans(-1);
 				tableLayoutPanel1.RowCount--;
-				EnableRemoveRowColumnButtons();
+				EnableRowColumnButtons();
 			}
 		}
 
@@ -397,7 +375,7 @@ namespace Torn.UI
 					tableLayoutPanel1.Controls.RemoveAt(tableLayoutPanel1.Controls.Count - 1);
 
 				tableLayoutPanel1.ColumnCount--;
-				EnableRemoveRowColumnButtons();
+				EnableRowColumnButtons();
 			}
 		}
 
@@ -728,7 +706,25 @@ namespace Torn.UI
 				webPort = form.WebPort;
 				if (webOutput != null)
 					webOutput.Restart(webPort);
-				AddTeamBoxes();
+				if (gameType == GameType.Lotrs && tableLayoutPanel1.ColumnCount <= 4)
+					ButtonAddColumnClick(null,null);
+				if (gameType == GameType.Lotrs && tableLayoutPanel1.RowCount < 2)
+					ButtonAddRowClick(null, null);
+				if (gameType == GameType.Teams && tableLayoutPanel1.RowCount < 2)
+					ButtonAddRowClick(null, null);
+				if (gameType == GameType.Teams && tableLayoutPanel1.ColumnCount < 4)
+					ButtonAddColumnClick(null, null);
+				if (gameType == GameType.Solos)
+				{
+					while (tableLayoutPanel1.RowCount > 1)
+						ButtonRemoveRowClick(null, null);
+					while (tableLayoutPanel1.ColumnCount > 4)
+						ButtonRemoveColumnClick(null, null);
+					DisableRowColumnButtons();
+				} else
+                {
+					EnableRowColumnButtons();
+				}
 			}
 		}
 
@@ -853,7 +849,7 @@ namespace Torn.UI
 					columnStyle.Width = 100 / tableLayoutPanel1.ColumnCount;
 
 				AddTeamBoxes();
-				EnableRemoveRowColumnButtons();
+				EnableRowColumnButtons();
 			} catch {}
 		}
 
@@ -911,6 +907,7 @@ namespace Torn.UI
 
 		void TransferPlayers(ServerGame serverGame)
 		{
+			Console.WriteLine("HERE");
 			League league = serverGame.League ?? (listViewLeagues.SelectedItems.Count == 1 ? ((Holder)listViewLeagues.SelectedItems[0].Tag).League : null);
 			if (league == null)
 				return;
