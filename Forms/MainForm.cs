@@ -442,6 +442,22 @@ namespace Torn.UI
 				} else if(gameType == GameType.Lotrs)
                 {
 					Console.WriteLine("LOTR");
+					var players = new List<List<ServerPlayer>>();
+					foreach (TeamBox teamBox in teamBoxes)
+						if (teamBox.Players().Any())
+						{
+							players.Add(teamBox.Players());
+							Console.WriteLine(players.Count());
+						}
+					Console.WriteLine(players.Count());
+					if(players.Any())
+                    {
+						ServerGame serverGame = item.Tag as ServerGame;
+						activeHolder.League.CommitGame(serverGame, players);
+					}
+				} else
+				{
+					Console.WriteLine("SOLO");
 					var players = new List<ServerPlayer>();
 					foreach (TeamBox teamBox in teamBoxes)
 						if (teamBox.Players().Any())
@@ -450,8 +466,8 @@ namespace Torn.UI
 							Console.WriteLine(players.Count());
 						}
 					Console.WriteLine(players.Count());
-					if(players.Any())
-                    {
+					if (players.Any())
+					{
 						ServerGame serverGame = item.Tag as ServerGame;
 						activeHolder.League.CommitGame(serverGame, players);
 					}

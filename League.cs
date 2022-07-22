@@ -393,6 +393,8 @@ namespace Torn
 		public int BaseDenied { get; set; }
 		public int YellowCards { get; set; }
 		public int RedCards { get; set; }
+		public double VictoryPoints { get; set; }
+
 
 		/// <summary>Used for accumulating data to be used for a team total, a game average, etc.</summary>
 		public void Add(GamePlayer source)
@@ -407,6 +409,7 @@ namespace Torn
 			BaseDenied += source.BaseDenied;
 			YellowCards += source.YellowCards;
 			RedCards += source.RedCards;
+			VictoryPoints += source.VictoryPoints;
 		}
 
 		int IComparable.CompareTo(object obj)
@@ -431,6 +434,7 @@ namespace Torn
 			target.BaseDenied = BaseDenied;
 			target.YellowCards = YellowCards;
 			target.RedCards = RedCards;
+			target.VictoryPoints = VictoryPoints;
 
 			return target;
 		}
@@ -450,6 +454,7 @@ namespace Torn
 			BaseDenied /= divisor;
 			YellowCards /= divisor;
 			RedCards /= divisor;
+			VictoryPoints /= divisor;
 		}
 
 		public GameTeam GameTeam(League league)
@@ -799,10 +804,12 @@ namespace Torn
 			return leaguePlayer == null ? "null" : leaguePlayer.Name;
 		}
 
-		string LinkPlayerToGame(GamePlayer gamePlayer, ServerGame game)
+		string LinkPlayerToGame(GamePlayer gamePlayer, Game game, double vps)
 		{
-			if (!game.Game.AllPlayers().Contains(gamePlayer))
-			game.Game.UnallocatedPlayers.Add(gamePlayer);
+			gamePlayer.VictoryPoints = vps;
+
+			if (!game.AllPlayers().Contains(gamePlayer))
+				game.UnallocatedPlayers.Add(gamePlayer);
 
 			var leaguePlayer = LeaguePlayer(gamePlayer);
 
@@ -897,11 +904,77 @@ namespace Torn
 			game.Teams.Clear();
 			foreach (var player in serverPlayers)
 			{
-				debug.Append(LinkPlayerToGame(game.AllPlayers().Find(gp => gp.PlayerId == player.PlayerId) ?? player, serverGame));
+				debug.Append(LinkPlayerToGame(game.AllPlayers().Find(gp => gp.PlayerId == player.PlayerId) ?? player, game, 0));
 				debug.Append(", ");
 
 				debug.Length -= 2; debug.Append(".\n");
 			}
+
+			Console.WriteLine(game.UnallocatedPlayers.Count());
+
+			var players = game.SortedAllPlayers();
+			for (int i = 0; i < players.Count; i++)
+				players[i].Rank = (uint)i + 1;
+
+			if (!AllGames.Contains(game))
+			{
+				AllGames.RemoveAll(g => g.Time == game.Time);
+				AllGames.Add(game);
+				AllGames.Sort();
+			}
+
+			game.Reported = false;
+			serverGame.League = this;
+
+			Save();
+			return debug.ToString();
+		}
+
+		public string CommitGame(ServerGame serverGame, List<List<ServerPlayer>> serverPlayers)
+		{
+			Load(FileName);
+			var debug = new StringBuilder();
+			if (serverGame.Game == null)
+			{
+				serverGame.Game = new Game
+				{
+					Time = serverGame.Time,
+					ServerGame = serverGame
+				};
+				debug.Append("Created new serverGame for ");
+				debug.Append(serverGame.Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture));
+				debug.Append(".\n");
+			}
+			Game game = serverGame.Game;
+
+			game.Teams.Clear();
+			foreach (var lorPlayers in serverPlayers)
+			{
+				lorPlayers.OrderBy(p => p.Score);
+				foreach (var player in lorPlayers) {
+					var ties = lorPlayers.Where(p => p.Score == player.Score);  // If there are ties, this list will contain the tied teams. If not, it will contain just this team.
+
+					double totalPoints = 0;
+					foreach (var tiedPlayer in ties)
+					{
+						int i = lorPlayers.IndexOf(tiedPlayer);
+
+						if (victoryPoints.Valid(i))
+							totalPoints += victoryPoints[i];
+					}
+
+					int index = lorPlayers.IndexOf(player);
+
+					double vps = ties.Count() > 0 ? totalPoints / ties.Count() : victoryPoints.Valid(index) ? victoryPoints[index] : 0;
+
+					debug.Append(LinkPlayerToGame(game.AllPlayers().Find(gp => gp.PlayerId == player.PlayerId) ?? player, game, vps));
+					debug.Append(", ");
+
+					debug.Length -= 2; debug.Append(".\n");
+				}
+			}
+
+			Console.WriteLine(game.UnallocatedPlayers.Count());
 
 			var players = game.SortedAllPlayers();
 			for (int i = 0; i < players.Count; i++)
@@ -1319,7 +1392,7 @@ namespace Torn
 				XmlNode playersNode = doc.CreateElement("players");
 				gameNode.AppendChild(playersNode);
 
-				foreach (var player in game.Players())
+				foreach (var player in GameType == GameType.Teams ? game.Players() : game.AllPlayers())
 				{
 					XmlNode playerNode = doc.CreateElement("player");
 					playersNode.AppendChild(playerNode);
@@ -1329,6 +1402,7 @@ namespace Torn
 					doc.AppendNode(playerNode, "qrcode", player.QRCode);
 					doc.AppendNode(playerNode, "pack", player.Pack);
 					doc.AppendNonZero(playerNode, "score", player.Score);
+					doc.AppendNonZero(playerNode, "victorypoints", player.VictoryPoints);
 					doc.AppendNode(playerNode, "rank", (int)player.Rank);
 					doc.AppendNonZero(playerNode, "hitsby", player.HitsBy);
 					doc.AppendNonZero(playerNode, "hitson", player.HitsOn);
