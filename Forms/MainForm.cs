@@ -161,6 +161,8 @@ namespace Torn.UI
 				ListViewLeaguesItemSelectionChanged(null, null);
 			else if (listViewLeagues.SelectedIndices.Count == 0)
 				listViewLeagues.SelectedIndices.Add(0);
+
+			ChangeRowsToDefaultSizeForGameType();
 		}
 
 		void ConnectLaserGameServer()
@@ -224,14 +226,18 @@ namespace Torn.UI
 
 		Holder AddLeague(string fileName, string key = "", bool neww = false)
 		{
-			League league = new League(fileName);
+			Console.WriteLine("AAAA");
+			League league = new League(fileName, gameType);
 			ListViewItem item = new ListViewItem();
 			if (!neww)
 				item.ImageKey = "tick";
 			try
 			{
 				if (!neww)
+				{
 					league.Load(fileName);
+					gameType = league.GameType;
+				}
 				item.Text = key;
 			}
 			catch (Exception ex)
@@ -392,45 +398,66 @@ namespace Torn.UI
 		{
 			foreach (ListViewItem item in listViewGames.SelectedItems)
 			{
-
-				var teamDatas = new List<GameTeamData>();
 				var teamBoxes = TeamBoxes();
-				// Build a list, one TeamData per TeamBox, connecting each GameTeam to its ServerPlayers.
-				foreach (TeamBox teamBox in teamBoxes)
-					if (teamBox.Players().Any())
-						teamDatas.Add(new GameTeamData
-						{
-							GameTeam = teamBox.GameTeam,
-							Players = teamBox.Players()
-						});
 
-				if (teamDatas.Any())
-				{
-					ServerGame serverGame = item.Tag as ServerGame;
-
-					activeHolder.League.CommitGame(serverGame, teamDatas, groupPlayersBy);
-
+				if (gameType == GameType.Teams)
+                {
+					var teamDatas = new List<GameTeamData>();
+					// Build a list, one TeamData per TeamBox, connecting each GameTeam to its ServerPlayers.
 					foreach (TeamBox teamBox in teamBoxes)
+						if (teamBox.Players().Any())
+							teamDatas.Add(new GameTeamData
+							{
+								GameTeam = teamBox.GameTeam,
+								Players = teamBox.Players()
+							});
+
+					if (teamDatas.Any())
 					{
-						var teamData = teamDatas.Find(x => x.GameTeam != null && x.GameTeam.TeamId == teamBox.GameTeam.TeamId);
-						if (teamData != null)
-							teamBox.GameTeam = teamData.GameTeam;
+						ServerGame serverGame = item.Tag as ServerGame;
 
-						if (autoUpdateTeams)
+						activeHolder.League.CommitGame(serverGame, teamDatas, groupPlayersBy);
+
+						foreach (TeamBox teamBox in teamBoxes)
 						{
-							var lt = activeHolder.League.LeagueTeam(teamBox.GameTeam);
+							var teamData = teamDatas.Find(x => x.GameTeam != null && x.GameTeam.TeamId == teamBox.GameTeam.TeamId);
+							if (teamData != null)
+								teamBox.GameTeam = teamData.GameTeam;
 
-							if (lt != null && teamBox.Players().Any())
-								lt.Handicap = teamBox.Handicap;
+							if (autoUpdateTeams)
+							{
+								var lt = activeHolder.League.LeagueTeam(teamBox.GameTeam);
+
+								if (lt != null && teamBox.Players().Any())
+									lt.Handicap = teamBox.Handicap;
+							}
 						}
-					}
 
-					RefreshGamesList();
-					RankTeams();
-					listViewGames.Focus();
-//					if (autoUpdateScoreboard)
-//						UpdateScoreboard();
+						RefreshGamesList();
+						RankTeams();
+						listViewGames.Focus();
+						//					if (autoUpdateScoreboard)
+						//						UpdateScoreboard();
+					}
+				} else if(gameType == GameType.Lotrs)
+                {
+					Console.WriteLine("LOTR");
+					var players = new List<ServerPlayer>();
+					foreach (TeamBox teamBox in teamBoxes)
+						if (teamBox.Players().Any())
+						{
+							players.AddRange(teamBox.Players());
+							Console.WriteLine(players.Count());
+						}
+					Console.WriteLine(players.Count());
+					if(players.Any())
+                    {
+						ServerGame serverGame = item.Tag as ServerGame;
+						activeHolder.League.CommitGame(serverGame, players);
+					}
 				}
+
+
 			}
 		}
 
@@ -706,25 +733,47 @@ namespace Torn.UI
 				webPort = form.WebPort;
 				if (webOutput != null)
 					webOutput.Restart(webPort);
-				if (gameType == GameType.Lotrs && tableLayoutPanel1.ColumnCount <= 4)
-					ButtonAddColumnClick(null,null);
-				if (gameType == GameType.Lotrs && tableLayoutPanel1.RowCount < 2)
+				ChangeRowsToDefaultSizeForGameType();
+				foreach (ListViewItem item in listViewLeagues.SelectedItems)
+					((Holder)item.Tag).League.SetGameType(gameType);
+				
+			}
+		}
+
+		void ChangeRowsToDefaultSizeForGameType() {
+			if (gameType == GameType.Lotrs)
+			{
+				while (tableLayoutPanel1.RowCount < 3)
 					ButtonAddRowClick(null, null);
-				if (gameType == GameType.Teams && tableLayoutPanel1.RowCount < 2)
-					ButtonAddRowClick(null, null);
-				if (gameType == GameType.Teams && tableLayoutPanel1.ColumnCount < 4)
+				while (tableLayoutPanel1.ColumnCount < 6)
 					ButtonAddColumnClick(null, null);
-				if (gameType == GameType.Solos)
-				{
-					while (tableLayoutPanel1.RowCount > 1)
-						ButtonRemoveRowClick(null, null);
-					while (tableLayoutPanel1.ColumnCount > 4)
-						ButtonRemoveColumnClick(null, null);
-					DisableRowColumnButtons();
-				} else
-                {
-					EnableRowColumnButtons();
-				}
+				while (tableLayoutPanel1.RowCount > 3)
+					ButtonRemoveRowClick(null, null);
+				while (tableLayoutPanel1.ColumnCount > 6)
+					ButtonRemoveColumnClick(null, null);
+			}
+			if (gameType == GameType.Teams)
+			{
+				while (tableLayoutPanel1.RowCount < 3)
+					ButtonAddRowClick(null, null);
+				while (tableLayoutPanel1.ColumnCount < 4)
+					ButtonAddColumnClick(null, null);
+				while (tableLayoutPanel1.RowCount > 3)
+					ButtonRemoveRowClick(null, null);
+				while (tableLayoutPanel1.ColumnCount > 4)
+					ButtonRemoveColumnClick(null, null);
+			}
+			if (gameType == GameType.Solos)
+			{
+				while (tableLayoutPanel1.RowCount > 1)
+					ButtonRemoveRowClick(null, null);
+				while (tableLayoutPanel1.ColumnCount > 4)
+					ButtonRemoveColumnClick(null, null);
+				DisableRowColumnButtons();
+			}
+			else
+			{
+				EnableRowColumnButtons();
 			}
 		}
 
@@ -907,66 +956,86 @@ namespace Torn.UI
 
 		void TransferPlayers(ServerGame serverGame)
 		{
-			Console.WriteLine("HERE");
 			League league = serverGame.League ?? (listViewLeagues.SelectedItems.Count == 1 ? ((Holder)listViewLeagues.SelectedItems[0].Tag).League : null);
 			if (league == null)
 				return;
+
 
 			var teamBoxes = TeamBoxes();
 
 			int box = 0;
 
-
-			if (serverGame.Game == null)  // This game is not yet committed. Match players to league teams.
+			if (gameType == GameType.Teams)
 			{
-				if (groupPlayersBy == GroupPlayersBy.Colour)
-					foreach (var colour in (Colour[])Enum.GetValues(typeof(Colour)))
-					{
-						var serverPlayers = playersBox.Players().FindAll(p => p.Colour == colour).ToList();
-						if (serverPlayers.Any() && box < teamBoxes.Count)
-							teamBoxes[box++].Accept(serverPlayers);
-					}
-				else  // Alias or LotR
-					foreach (var team in league.Teams)
-					{
-						var serverPlayers = playersBox.Players().FindAll(p => team.Players.Exists(p2 => p.PlayerId == p2.Id)).ToList();
-						if (serverPlayers.Any() && box < teamBoxes.Count)
-							teamBoxes[box++].Accept(serverPlayers);
-					}
-			}
-			else  // This game is previously committed. Match game players to game teams.
-			{
-				var leagueGame = serverGame.Game;
-				foreach (var gameTeam in leagueGame.Teams)
+				if (serverGame.Game == null)  // This game is not yet committed. Match players to league teams.
 				{
-					var serverPlayers = new List<ServerPlayer>();
-					foreach (var gp in gameTeam.Players)
-					{
-						var players = playersBox.Players();
-						var serverPlayer = players.Find(sp => (!string.IsNullOrEmpty(sp.PlayerId) && sp.PlayerId == gp.PlayerId) ||
-						                                      (!string.IsNullOrEmpty(sp.ServerPlayerId) && gp is ServerPlayer player && sp.ServerPlayerId == player.ServerPlayerId) ||
-						                                      (!string.IsNullOrEmpty(sp.Pack) && sp.Pack == gp.Pack));
-						if (serverPlayer != null)
+					if (groupPlayersBy == GroupPlayersBy.Colour)
+						foreach (var colour in (Colour[])Enum.GetValues(typeof(Colour)))
 						{
-							serverPlayers.Add(serverPlayer);
+							var serverPlayers = playersBox.Players().FindAll(p => p.Colour == colour).ToList();
+							if (serverPlayers.Any() && box < teamBoxes.Count)
+								teamBoxes[box++].Accept(serverPlayers);
+						}
+					else  // Alias or LotR
+						foreach (var team in league.Teams)
+						{
+							var serverPlayers = playersBox.Players().FindAll(p => team.Players.Exists(p2 => p.PlayerId == p2.Id)).ToList();
+							if (serverPlayers.Any() && box < teamBoxes.Count)
+								teamBoxes[box++].Accept(serverPlayers);
+						}
+				}
+				else  // This game is previously committed. Match game players to game teams.
+				{
+					var leagueGame = serverGame.Game;
+					foreach (var gameTeam in leagueGame.Teams)
+					{
+						var serverPlayers = new List<ServerPlayer>();
+						foreach (var gp in gameTeam.Players)
+						{
+							var players = playersBox.Players();
+							var serverPlayer = players.Find(sp => (!string.IsNullOrEmpty(sp.PlayerId) && sp.PlayerId == gp.PlayerId) ||
+																  (!string.IsNullOrEmpty(sp.ServerPlayerId) && gp is ServerPlayer player && sp.ServerPlayerId == player.ServerPlayerId) ||
+																  (!string.IsNullOrEmpty(sp.Pack) && sp.Pack == gp.Pack));
+							if (serverPlayer != null)
+							{
+								serverPlayers.Add(serverPlayer);
 
-							serverPlayer.PlayerId = gp.PlayerId;
-							serverPlayer.Item.SubItems[1].Text = league.Alias(gp);
+								serverPlayer.PlayerId = gp.PlayerId;
+								serverPlayer.Item.SubItems[1].Text = league.Alias(gp);
+							}
+						}
+
+						if (serverPlayers.Any() && box < teamBoxes.Count)
+						{
+							teamBoxes[box].LeagueTeam = league.LeagueTeam(gameTeam);
+							teamBoxes[box].GameTeam = gameTeam;
+							teamBoxes[box].Accept(serverPlayers);
+							box++;
 						}
 					}
+				}
 
-					if (serverPlayers.Any() && box < teamBoxes.Count)
+				RankTeamBoxes();
+				ArrangeTeamsByRank();
+			} else
+            {
+				if (serverGame.Game == null)  // This game is not yet committed. Match players to league teams.
+				{
+					if (gameType == GameType.Lotrs)
+						foreach (var colour in (Colour[])Enum.GetValues(typeof(Colour)))
+						{
+							var serverPlayers = playersBox.Players().FindAll(p => p.Colour == colour).ToList();
+							if (serverPlayers.Any() && box < teamBoxes.Count)
+								teamBoxes[box++].Accept(serverPlayers);
+						}
+					else
 					{
-						teamBoxes[box].LeagueTeam = league.LeagueTeam(gameTeam);
-						teamBoxes[box].GameTeam = gameTeam;
-						teamBoxes[box].Accept(serverPlayers);
-						box++;
+						var serverPlayers = playersBox.Players().FindAll(p => league.Players.Exists(p2 => p.PlayerId == p2.Id)).ToList();
+						if (serverPlayers.Any() && box < teamBoxes.Count)
+							teamBoxes[box++].Accept(serverPlayers);
 					}
 				}
 			}
-
-			RankTeamBoxes();
-			ArrangeTeamsByRank();
 		}
 
 		bool EnableCommit()
@@ -1432,6 +1501,7 @@ namespace Torn.UI
 
 		public void SaveSettings()
 		{
+			Console.WriteLine("Save Settings");
 			XmlDocument doc = new XmlDocument();
 			XmlNode docNode = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
 			doc.AppendChild(docNode);

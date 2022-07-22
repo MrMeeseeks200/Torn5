@@ -17,7 +17,7 @@ namespace TornWeb
 	{
 		League CreateLeague()
 		{
-			var league = new League(Path.Combine(Path.GetTempPath(), "TestLeague1.Torn"));
+			var league = new League(Path.Combine(Path.GetTempPath(), "TestLeague1.Torn"), Torn.UI.GameType.Teams);
 
 			var team = new LeagueTeam() { Name = "Team A" };
 			league.AddTeam(team);

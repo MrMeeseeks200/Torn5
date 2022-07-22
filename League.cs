@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
+using Torn.UI;
 
 namespace Torn
 {
@@ -640,6 +641,7 @@ namespace Torn
 		public int GridHigh { get; set; }
 		public int GridWide { get; set; }
 		public int GridPlayers { get; set; }
+		public GameType GameType { get; set; }
 		int sortMode, sortByRank, autoUpdate, updateTeams, elimMultiplier;
 		public HandicapStyle HandicapStyle { get; set; }
 
@@ -676,11 +678,12 @@ namespace Torn
 			HandicapStyle = HandicapStyle.Percent;
 		}
 
-		public League(string fileName): this()
+		public League(string fileName, GameType gameType): this()
 		{
 			Clear();
 			FileName = fileName;
 			Title = Path.GetFileNameWithoutExtension(fileName).Replace('_', ' ');
+			GameType = gameType;
 		}
 
 		public void AddTeam(LeagueTeam leagueTeam)
@@ -690,6 +693,11 @@ namespace Torn
 
 			Teams.Add(leagueTeam);
 		}
+
+		public void SetGameType(GameType gameType)
+        {
+			GameType = gameType;
+        }
 
 		void Clear()
 		{
@@ -791,6 +799,25 @@ namespace Torn
 			return leaguePlayer == null ? "null" : leaguePlayer.Name;
 		}
 
+		string LinkPlayerToGame(GamePlayer gamePlayer, ServerGame game)
+		{
+			if (!game.Game.AllPlayers().Contains(gamePlayer))
+			game.Game.UnallocatedPlayers.Add(gamePlayer);
+
+			var leaguePlayer = LeaguePlayer(gamePlayer);
+
+			if (leaguePlayer == null)
+			{
+				leaguePlayer = new LeaguePlayer();
+				if (gamePlayer is ServerPlayer serverPlayer)
+					leaguePlayer.Name = serverPlayer.Alias;
+				leaguePlayer.Id = gamePlayer.PlayerId;
+				Players.Add(leaguePlayer);
+			}
+
+			return leaguePlayer == null ? "null" : leaguePlayer.Name;
+		}
+
 		public string CommitGame(ServerGame serverGame, List<GameTeamData> teamDatas, GroupPlayersBy groupPlayersBy)
 		{
 			Load(FileName);
@@ -845,6 +872,50 @@ namespace Torn
 
 			foreach (var teamData in teamDatas)
 				teamData.GameTeam.Points = CalculatePoints(teamData.GameTeam, groupPlayersBy);
+
+			Save();
+			return debug.ToString();
+		}
+
+		public string CommitGame(ServerGame serverGame, List<ServerPlayer> serverPlayers)
+		{
+			Load(FileName);
+			var debug = new StringBuilder();
+			if (serverGame.Game == null)
+			{
+				serverGame.Game = new Game
+				{
+					Time = serverGame.Time,
+					ServerGame = serverGame
+				};
+				debug.Append("Created new serverGame for ");
+				debug.Append(serverGame.Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture));
+				debug.Append(".\n");
+			}
+			Game game = serverGame.Game;
+
+			game.Teams.Clear();
+			foreach (var player in serverPlayers)
+			{
+				debug.Append(LinkPlayerToGame(game.AllPlayers().Find(gp => gp.PlayerId == player.PlayerId) ?? player, serverGame));
+				debug.Append(", ");
+
+				debug.Length -= 2; debug.Append(".\n");
+			}
+
+			var players = game.SortedAllPlayers();
+			for (int i = 0; i < players.Count; i++)
+				players[i].Rank = (uint)i + 1;
+
+			if (!AllGames.Contains(game))
+			{
+				AllGames.RemoveAll(g => g.Time == game.Time);
+				AllGames.Add(game);
+				AllGames.Sort();
+			}
+
+			game.Reported = false;
+			serverGame.League = this;
 
 			Save();
 			return debug.ToString();
@@ -942,6 +1013,8 @@ namespace Torn
 			GridWide = root.GetInt("GridWide");
 			GridPlayers = root.GetInt("GridPlayers");
 			sortMode = root.GetInt("SortMode");
+			Enum.TryParse(root.GetString("GameType"), out GameType gameType);
+			GameType = gameType;
 			string s = root.GetString("HandicapStyle");
 			HandicapStyle = s == "%" ? HandicapStyle.Percent : s == "+" ? HandicapStyle.Plus : HandicapStyle.Minus;
 			sortByRank = root.GetInt("SortByRank");
@@ -958,45 +1031,76 @@ namespace Torn
 
 			XmlNodeList xteams = root.SelectSingleNode("leaguelist").SelectNodes("team");
 
-			foreach (XmlNode xteam in xteams)
-			{
-				LeagueTeam leagueTeam = new LeagueTeam
+
+			if (GameType == GameType.Teams)
+            {
+				foreach (XmlNode xteam in xteams)
 				{
-					Name = xteam.GetString("teamname"),
-					TeamId = xteam.GetInt("teamid"),
-					Handicap = Handicap.Parse(xteam.GetString("handicap")),
-					Comment = xteam.GetString("comment")
-				};
+					LeagueTeam leagueTeam = new LeagueTeam
+					{
+						Name = xteam.GetString("teamname"),
+						TeamId = xteam.GetInt("teamid"),
+						Handicap = Handicap.Parse(xteam.GetString("handicap")),
+						Comment = xteam.GetString("comment")
+					};
 
 					var teamPlayers = xteam.SelectSingleNode("players");
-				if (teamPlayers != null)
-				{
-					XmlNodeList xplayers = teamPlayers.SelectNodes("player");
-					
+					if (teamPlayers != null)
+					{
+						XmlNodeList xplayers = teamPlayers.SelectNodes("player");
+
+						foreach (XmlNode xplayer in xplayers)
+						{
+							LeaguePlayer leaguePlayer;
+							string id = xplayer.GetString("buttonid"); ;
+
+							leaguePlayer = players.Find(x => x.Id == id);
+							if (leaguePlayer == null)
+							{
+								leaguePlayer = new LeaguePlayer();
+								players.Add(leaguePlayer);
+								leaguePlayer.Id = id;
+							}
+
+							leaguePlayer.Name = xplayer.GetString("name");
+							leaguePlayer.Handicap = Handicap.Parse(xteam.GetString("handicap"));
+							leaguePlayer.Comment = xplayer.GetString("comment");
+
+							if (!leagueTeam.Players.Exists(x => x.Id == id))
+								leagueTeam.Players.Add(leaguePlayer);
+						}
+					}
+
+					teams.Add(leagueTeam);
+				}
+			} else
+            {
+				XmlNode xPlayers = root.SelectSingleNode("leaguelist").SelectSingleNode("players");
+				if(xPlayers != null)
+                {
+					XmlNodeList xplayers = xPlayers.SelectNodes("player");
+
 					foreach (XmlNode xplayer in xplayers)
 					{
 						LeaguePlayer leaguePlayer;
-						string id = xplayer.GetString("buttonid");;
-						
+						string id = xplayer.GetString("buttonid"); ;
+
 						leaguePlayer = players.Find(x => x.Id == id);
 						if (leaguePlayer == null)
 						{
+							Console.WriteLine("HEREERE");
+							Console.WriteLine(players.Count());
 							leaguePlayer = new LeaguePlayer();
 							players.Add(leaguePlayer);
 							leaguePlayer.Id = id;
 						}
 
 						leaguePlayer.Name = xplayer.GetString("name");
-						leaguePlayer.Handicap = Handicap.Parse(xteam.GetString("handicap"));
 						leaguePlayer.Comment = xplayer.GetString("comment");
-
-						if (!leagueTeam.Players.Exists(x => x.Id == id))
-							leagueTeam.Players.Add(leaguePlayer);
 					}
 				}
-
-				teams.Add(leagueTeam);
 			}
+			
 
 			XmlNodeList xgames = root.SelectSingleNode("games").SelectNodes("game");
 
@@ -1117,6 +1221,7 @@ namespace Torn
 			doc.AppendNode(bodyNode, "GridWide", GridWide);
 			doc.AppendNode(bodyNode, "GridPlayers", GridPlayers);
 			doc.AppendNode(bodyNode, "SortMode", sortMode);
+			doc.AppendNode(bodyNode, "GameType", GameType.ToString());
 			doc.AppendNode(bodyNode, "HandicapStyle", HandicapStyle.ToString());
 			doc.AppendNonZero(bodyNode, "SortByRank", sortByRank);
 			doc.AppendNode(bodyNode, "AutoUpdate", autoUpdate);
@@ -1132,21 +1237,40 @@ namespace Torn
 			XmlNode leagueTeamsNode = doc.CreateElement("leaguelist");
 			bodyNode.AppendChild(leagueTeamsNode);
 
-			foreach (var team in teams)
+			if (GameType == GameType.Teams)
 			{
-				XmlNode teamNode = doc.CreateElement("team");
-				leagueTeamsNode.AppendChild(teamNode);
+				foreach (var team in teams)
+				{
+					XmlNode teamNode = doc.CreateElement("team");
+					leagueTeamsNode.AppendChild(teamNode);
 
-				doc.AppendNode(teamNode, "teamname", team.Name);
-				doc.AppendNode(teamNode, "teamid", team.TeamId);
-				if (team.Handicap != null && !team.Handicap.IsZero())
-					doc.AppendNode(teamNode, "handicap", team.Handicap.ToString());
-				if (!string.IsNullOrEmpty(team.Comment)) doc.AppendNode(teamNode, "comment", team.Comment);
+					doc.AppendNode(teamNode, "teamname", team.Name);
+					doc.AppendNode(teamNode, "teamid", team.TeamId);
+					if (team.Handicap != null && !team.Handicap.IsZero())
+						doc.AppendNode(teamNode, "handicap", team.Handicap.ToString());
+					if (!string.IsNullOrEmpty(team.Comment)) doc.AppendNode(teamNode, "comment", team.Comment);
 
+					XmlNode playersNode = doc.CreateElement("players");
+					teamNode.AppendChild(playersNode);
+
+					foreach (var player in team.Players)
+					{
+						XmlNode playerNode = doc.CreateElement("player");
+						playersNode.AppendChild(playerNode);
+
+						doc.AppendNode(playerNode, "name", player.Name);
+						doc.AppendNode(playerNode, "buttonid", player.Id);
+						if (player.Handicap != null && !player.Handicap.IsZero())
+							doc.AppendNode(playerNode, "handicap", player.Handicap.ToString());
+						if (!string.IsNullOrEmpty(player.Comment)) doc.AppendNode(playerNode, "comment", player.Comment);
+					}
+				}
+			} else
+            {
 				XmlNode playersNode = doc.CreateElement("players");
-				teamNode.AppendChild(playersNode);
+				leagueTeamsNode.AppendChild(playersNode);
 
-				foreach (var player in team.Players)
+				foreach (var player in players)
 				{
 					XmlNode playerNode = doc.CreateElement("player");
 					playersNode.AppendChild(playerNode);
@@ -1157,7 +1281,7 @@ namespace Torn
 						doc.AppendNode(playerNode, "handicap", player.Handicap.ToString());
 					if (!string.IsNullOrEmpty(player.Comment)) doc.AppendNode(playerNode, "comment", player.Comment);
 				}
-			}
+            }
 
 			XmlNode gamesNode = doc.CreateElement("games");
 			bodyNode.AppendChild(gamesNode);
