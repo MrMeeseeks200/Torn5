@@ -53,7 +53,7 @@ namespace Torn.UI
 			{
 				foreach (T item in list)
 				{
-					str += item + ", ";
+					str += item + ",\t";
 				}
 				str += "\n";
 			}
@@ -79,24 +79,54 @@ namespace Torn.UI
 				.ToList();
 		}
 
-		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam)
+		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays)
 		{
 			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
-			double bestScore = CalcScore(bestGrid, gamesPerTeam);
+			double bestScore = CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays);
 
 			Console.WriteLine("initScore: {0}", bestScore);
 			LogGrid(bestGrid);
 
+			bool badFixture = true;
+
 			for (int i = 0; i < 100000; i++)
 			{
 				List<List<int>> mixedGrid = MixGrid(bestGrid);
-				double score = CalcScore(mixedGrid, gamesPerTeam);
+				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
 				if(score <= bestScore)
                 {
 					bestScore = score;
 					bestGrid = mixedGrid;
+					if(bestScore > 10000)
+                    {
+						badFixture = true;
+                    }
+                    else
+                    {
+						badFixture = false;
+                    }
                 }
 			}
+
+			while(badFixture)
+            {
+				List<List<int>> mixedGrid = MixGrid(bestGrid);
+				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
+				if (score <= bestScore)
+				{
+					bestScore = score;
+					bestGrid = mixedGrid;
+					if (bestScore > 10000)
+					{
+						badFixture = true;
+					}
+					else
+					{
+						badFixture = false;
+					}
+				}
+			}
+
 			Console.WriteLine("bestScore: {0}", bestScore);
 			LogGrid(bestGrid);
 
@@ -128,13 +158,41 @@ namespace Torn.UI
 			return newGrid;
         }
 
-		double CalcScore(List<List<int>> grid, double gamesPerTeam)
+		List<int> SumRows(List<List<int>> grid )
+        {
+			List<int> totals = new List<int>();
+			foreach(List<int> row in grid)
+            {
+				int total = 0;
+				foreach(int value in row)
+                {
+					total += value;
+                }
+				totals.Add(total);
+            }
+			return totals;
+        }
+
+		int AverageRow(List<int> row)
+		{
+			int total = 0;
+			foreach (int value in row)
+			{
+				total += value;
+			}
+
+			return total / row.Count;
+				
+		}
+
+		double CalcScore(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays)
 		{
 			int BACK_TO_BACK_PENALTY = 10;
 			int totalTeams = FlattenGrid(grid).Uniq().Count;
 			int teamsPerGame = grid[0].Count;
-			List<List<int>> plays = CalcPlays(grid);
-			double averagePlays = (gamesPerTeam * teamsPerGame) / totalTeams;
+			double previousAveragePlays = AverageRow(SumRows(existingPlays)) / totalTeams;
+			List<List<int>> plays = CalcPlays(grid, hasRef, existingPlays);
+			double averagePlays = ((gamesPerTeam + previousAveragePlays) * teamsPerGame) / totalTeams;
 
 			double score = 0;
 
@@ -143,7 +201,7 @@ namespace Torn.UI
 				score += plays[player1][player1] * 10000; // penalty for playing themselves
 				for(int player2 = player1 + 1; player2 < plays[player1].Count; player2++)
                 {
-					score += Math.Pow(plays[player1][player2] - averagePlays, 4);
+					score += Math.Pow(plays[player1][player2] - averagePlays, 2);
                 }
             }
 
@@ -165,7 +223,7 @@ namespace Torn.UI
 			foreach(List<int> row in grid)
             {
 				int uniquePlayers = row.Uniq().Count;
-				score += Math.Pow(10, Math.Abs(uniquePlayers - teamsPerGame) + 1); // penalty for playing themselves
+				score += Math.Abs(uniquePlayers - teamsPerGame) * 10000; // penalty for playing themselves
 			}
 
 			//back to back
@@ -187,9 +245,40 @@ namespace Torn.UI
 			return score;
 		}
 
-		List<List<int>> CalcPlays(List<List<int>> grid)
+		List<List<int>> AddGrids(List<List<int>> grid1, List<List<int>> grid2)
         {
-			int totalTeams = FlattenGrid(grid).Uniq().Count;
+			
+			if (grid1.Count > 0 && grid1.Count == grid2.Count && grid1[0].Count == grid2[0].Count)
+			{
+				List<List<int>> grid3 = new List<List<int>>();
+				for (int i = 0; i < grid1.Count; i++)
+				{
+					List<int> row = new List<int>();
+					for (int j = 0; j < grid1[i].Count; j++)
+					{
+						row.Add(grid1[i][j] + grid2?[i]?[j] ?? 0);
+					}
+					grid3.Add(row);
+				}
+				return grid3;
+			} else
+            {
+				return grid1;
+            }
+        }
+
+		List<List<int>> CalcPlays(List<List<int>> grid, bool hasRef, List<List<int>> existingPlays)
+        {
+			List<List<int>> newGrid = grid.ConvertAll(row => row.ConvertAll(cell => cell));
+			// ignore ref games
+			if (hasRef)
+            {
+				List<List<int>> transposedGrid = TransposeGrid(newGrid);
+				transposedGrid.RemoveAt(transposedGrid.Count - 1);
+				newGrid = TransposeGrid(transposedGrid);
+            }
+
+			int totalTeams = FlattenGrid(newGrid).Uniq().Count;
 			List<List<int>> plays = new List<List<int>>();
 			for(int team1 = 0; team1 < totalTeams; team1++)
             {
@@ -202,14 +291,14 @@ namespace Torn.UI
 					}
 					else
 					{
-						List<List<int>> games = grid.FindAll(g => g.Contains(team1) && g.Contains(team2));
+						List<List<int>> games = newGrid.FindAll(g => g.Contains(team1) && g.Contains(team2));
 						row.Add(games.Count);
 					}
 				}
 				plays.Add(row);
 			}
 
-			return plays;
+			return AddGrids(plays, existingPlays);
 		}
 
 
@@ -232,6 +321,45 @@ namespace Torn.UI
 
 		}
 
+		public List<List<int>> GetLeagueGrid(League league)
+		{
+			List<List<int>> grid = new List<List<int>>();
+			foreach(Game game in league.AllGames)
+            {
+				List<int> row = new List<int>();
+				foreach(GameTeam team in game.Teams)
+                {
+					row.Add(team.TeamId - 1 ?? -1);
+                }
+				grid.Add(row);
+            }
+
+			return grid;
+		}
+
+		public List<List<int>> PadPlaysToTeamNumber(int numberOfTeams, List<List<int>> plays)
+        {
+			List<List<int>> newGrid = plays.ConvertAll(row => row.ConvertAll(cell => cell));
+			if (numberOfTeams > newGrid.Count)
+            {
+				for(int i = plays.Count; i < numberOfTeams; i++)
+                {
+					List<int> arr = Enumerable.Repeat(0, plays.Count).ToList();
+					newGrid.Add(arr);
+				}
+				List<List<int>> transposed = TransposeGrid(newGrid);
+				for (int i = transposed.Count; i < numberOfTeams; i++)
+				{
+					List<int> arr = Enumerable.Repeat(0, transposed.Count + 1).ToList();
+					transposed.Add(arr);
+				}
+				return TransposeGrid(transposed);
+			} else
+            {
+				return plays;
+            }
+        }
+
 		void ButtonImportTeamsClick(object sender, EventArgs e)
 		{
 			Holder.Fixture.Teams.Clear();
@@ -240,8 +368,14 @@ namespace Torn.UI
 			double numberOfTeams = Holder.Fixture.Teams.Count;
 			double teamsPerGame = 4;
 			double gamesPerTeam = 4;
+			bool hasRef = true;
 
-			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
+			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
+			List<List<int>> existingPlaysPadded = PadPlaysToTeamNumber((int)numberOfTeams, existingPlays);
+
+
+			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded);
 
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, datePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value));
