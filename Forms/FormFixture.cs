@@ -61,19 +61,160 @@ namespace Torn.UI
 			Console.WriteLine(str);
 		}
 
-		void GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam)
+		List<T> FlattenGrid<T>(List<List<T>> grid)
+		{
+			List<T> flat = new List<T>();
+			foreach (List<T> list in grid)
+			{
+				flat.AddRange(list);
+			}
+			return flat;
+		}
+
+		List<List<T>> TransposeGrid<T>(List<List<T>> grid)
+        {
+			return grid.SelectMany(inner => inner.Select((item, index) => new { item, index }))
+				.GroupBy(i => i.index, i => i.item)
+				.Select(g => g.ToList())
+				.ToList();
+		}
+
+		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam)
 		{
 			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+			double bestScore = CalcScore(bestGrid, gamesPerTeam);
 
+			Console.WriteLine("initScore: {0}", bestScore);
+			LogGrid(bestGrid);
+
+			for (int i = 0; i < 100000; i++)
+			{
+				List<List<int>> mixedGrid = MixGrid(bestGrid);
+				double score = CalcScore(mixedGrid, gamesPerTeam);
+				if(score <= bestScore)
+                {
+					bestScore = score;
+					bestGrid = mixedGrid;
+                }
+			}
+			Console.WriteLine("bestScore: {0}", bestScore);
+			LogGrid(bestGrid);
+
+			return bestGrid;
+
+		}
+
+		List<List<int>> MixGrid(List<List<int>> grid)
+        {
+			List<List<int>> newGrid = grid.ConvertAll(row => row.ConvertAll(cell => cell));
+			double teamsPerGame = grid[0].Count;
+			double totalTeams = FlattenGrid(grid).Uniq().Count;
+			Random rnd = new Random();
+
+			int game1 = rnd.Next(grid.Count);
+			int game2 = rnd.Next(grid.Count);
+
+			while ((totalTeams / teamsPerGame) > 1 && game1 == game2)
+            {
+				game2 = rnd.Next(grid.Count - 1);
+            }
+
+			int player1 = rnd.Next((int)teamsPerGame);
+			int player2 = rnd.Next((int)teamsPerGame);
+
+			newGrid[game1][player1] = grid[game2][player2];
+			newGrid[game2][player2] = grid[game1][player1];
+
+			return newGrid;
+        }
+
+		double CalcScore(List<List<int>> grid, double gamesPerTeam)
+		{
+			int BACK_TO_BACK_PENALTY = 10;
+			int totalTeams = FlattenGrid(grid).Uniq().Count;
+			int teamsPerGame = grid[0].Count;
+			List<List<int>> plays = CalcPlays(grid);
+			double averagePlays = (gamesPerTeam * teamsPerGame) / totalTeams;
+
+			double score = 0;
+
+			for (int player1 = 0; player1 < plays.Count; player1++)
+            {
+				score += plays[player1][player1] * 10000; // penalty for playing themselves
+				for(int player2 = player1 + 1; player2 < plays[player1].Count; player2++)
+                {
+					score += Math.Pow(plays[player1][player2] - averagePlays, 4);
+                }
+            }
+
+			 List<List<int>> transposedGrid = TransposeGrid(grid);
+
+			//penalty for same colour
+			foreach (List<int> colour in transposedGrid)
+            {
+				int numberOfGames = colour.Count;
+				int numberOfColours = transposedGrid.Count;
+				int uniqueTeams = colour.Uniq().Count;
+				double gamesOnEachColour = gamesPerTeam / numberOfColours;
+				int penalties = colour.FindAll(team => colour.FindAll(t => t == team).Count > gamesOnEachColour).Count;
+
+				double penalty = penalties * 10000;
+				score += penalty;
+            }
+
+			foreach(List<int> row in grid)
+            {
+				int uniquePlayers = row.Uniq().Count;
+				score += Math.Pow(10, Math.Abs(uniquePlayers - teamsPerGame) + 1); // penalty for playing themselves
+			}
+
+			//back to back
+			for (int game = 0; game < grid.Count - 1; game++)
+			{
+				for (int player1 = 0; player1 < teamsPerGame; player1++)
+				{
+					for (int player2 = 0; player2 < teamsPerGame; player2++)
+					{
+						if (grid[game][player1] == grid[game + 1][player2])
+						{
+							score += BACK_TO_BACK_PENALTY;
+						}
+					}
+				}
+			}
+
+
+			return score;
+		}
+
+		List<List<int>> CalcPlays(List<List<int>> grid)
+        {
+			int totalTeams = FlattenGrid(grid).Uniq().Count;
+			List<List<int>> plays = new List<List<int>>();
+			for(int team1 = 0; team1 < totalTeams; team1++)
+            {
+				List<int> row = new List<int>();
+				for (int team2 = 0; team2 < totalTeams; team2++)
+				{
+					if (team1 == team2)
+					{
+						row.Add(0);
+					}
+					else
+					{
+						List<List<int>> games = grid.FindAll(g => g.Contains(team1) && g.Contains(team2));
+						row.Add(games.Count);
+					}
+				}
+				plays.Add(row);
+			}
+
+			return plays;
 		}
 
 
 		List<List<int>> SetupGrid (double numberOfTeams, double teamsPerGame, double gamesPerTeam)
         {
-			Console.WriteLine("numTeams {0}", numberOfTeams);
-			Console.WriteLine("teamsPerGame {0}", teamsPerGame);
-			Console.WriteLine("gamesPerTeam {0}", gamesPerTeam);
-
 			double numGames = (numberOfTeams / teamsPerGame) * gamesPerTeam;
 
 			// set up grid
@@ -86,7 +227,6 @@ namespace Torn.UI
 				index++;
 			}
 			List<List<int>> grid = updatedArr.ChunkBy((int)teamsPerGame);
-			LogGrid(grid);
 
 			return grid;
 
@@ -97,14 +237,19 @@ namespace Torn.UI
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(textBoxTeams.Text, Holder.League);
 			Holder.Fixture.Games.Clear();
-			Holder.Fixture.Games.Parse(Holder.League, Holder.Fixture.Teams);
 			double numberOfTeams = Holder.Fixture.Teams.Count;
-			double teamsPerGame = 3;
-			double gamesPerTeam = 3;
+			double teamsPerGame = 4;
+			double gamesPerTeam = 4;
 
-			GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+
+
+			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, datePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value));
+
 
 			textBoxTeams.Text = Holder.Fixture.Teams.ToString();
+			textBoxGames.Text = Holder.Fixture.Games.ToString();
+			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 			reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
 			reportTeamsGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
 		}
@@ -736,4 +881,17 @@ public static class ListExtensions
 			.Select(x => x.Select(v => v.Value).ToList())
 			.ToList();
 	}
+	public static List<T> Uniq<T>(this List<T> source)
+    {
+		List<T> result = new List<T>();
+
+		foreach(T el in source)
+        {
+			bool exists = result.Contains(el);
+			if (!exists)
+				result.Add(el);
+        }
+		return result;
+
+    }
 }
