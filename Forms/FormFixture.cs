@@ -46,15 +46,73 @@ namespace Torn.UI
 			displayReportGrid.Report = null;
 		}
 
+		void LogGrid<T>(List<List<T>> grid)
+		{
+			string str = "**********\n";
+			foreach (List<T> list in grid)
+			{
+				foreach (T item in list)
+				{
+					str += item + ", ";
+				}
+				str += "\n";
+			}
+			str += "**********";
+			Console.WriteLine(str);
+		}
+
+		void GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam)
+		{
+			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+
+		}
+
+
+		List<List<int>> SetupGrid (double numberOfTeams, double teamsPerGame, double gamesPerTeam)
+        {
+			Console.WriteLine("numTeams {0}", numberOfTeams);
+			Console.WriteLine("teamsPerGame {0}", teamsPerGame);
+			Console.WriteLine("gamesPerTeam {0}", gamesPerTeam);
+
+			double numGames = (numberOfTeams / teamsPerGame) * gamesPerTeam;
+
+			// set up grid
+			List<int> arr = Enumerable.Repeat(-1, (int) teamsPerGame * (int)Math.Ceiling(numGames)).ToList();
+			int index = 0;
+			List<int> updatedArr = new List<int>();
+			foreach (int el in arr)
+			{
+				updatedArr.Add((int)(index % numberOfTeams));
+				index++;
+			}
+			List<List<int>> grid = updatedArr.ChunkBy((int)teamsPerGame);
+			LogGrid(grid);
+
+			return grid;
+
+		}
+
 		void ButtonImportTeamsClick(object sender, EventArgs e)
 		{
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(textBoxTeams.Text, Holder.League);
+			Holder.Fixture.Games.Clear();
+			Holder.Fixture.Games.Parse(Holder.League, Holder.Fixture.Teams);
+			double numberOfTeams = Holder.Fixture.Teams.Count;
+			double teamsPerGame = 3;
+			double gamesPerTeam = 3;
+
+			GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+
 			textBoxTeams.Text = Holder.Fixture.Teams.ToString();
+			reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
+			reportTeamsGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
 		}
 
 		void ButtonImportGamesClick(object sender, EventArgs e)
 		{
+			Holder.Fixture.Games.Clear();
+
 			bool fromLeague = (ModifierKeys.HasFlag(Keys.Control) && ModifierKeys.HasFlag(Keys.Shift)) ||
 				(ModifierKeys.HasFlag(Keys.Control) && ModifierKeys.HasFlag(Keys.Alt)) ||
 				(ModifierKeys.HasFlag(Keys.Shift) && ModifierKeys.HasFlag(Keys.Alt));
@@ -560,7 +618,12 @@ namespace Torn.UI
 			var _ = ((NumericUpDown)sender).Value;  // This piece of black magic forces the control's ValueChanged to fire after the user edits the text in the control.
 		}
 
-		private void ButtonEditPyramidGamesClick(object sender, EventArgs e)
+        private void generate_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ButtonEditPyramidGamesClick(object sender, EventArgs e)
 		{
 			if (listViewGames.SelectedItems.Count == 0)
 				return;
@@ -660,5 +723,17 @@ class TeamComparer : IComparer<FixtureTeam>
 		if (ix == -1) ix = 999999;
 		if (iy == -1) iy = 999999;
 		return ix - iy;
+	}
+}
+
+public static class ListExtensions
+{
+	public static List<List<T>> ChunkBy<T>(this List<T> source, int chunkSize)
+	{
+		return source
+			.Select((x, i) => new { Index = i, Value = x })
+			.GroupBy(x => x.Index / chunkSize)
+			.Select(x => x.Select(v => v.Value).ToList())
+			.ToList();
 	}
 }
