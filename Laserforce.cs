@@ -113,8 +113,6 @@ namespace Torn
 
 			game.Players = new List<ServerPlayer>();
 
-			Console.WriteLine("AAA: " + game.GameId.ToString());	
-
 			string sql = "SELECT MAT.colourTeam AS [Colour], MP.score, U.[desc] AS [Pack_Name], " +
 						 "cast(C.region as varchar) + '-' + cast(C.site as varchar) + '-' + cast(Member.id as varchar) as [Player_ID], " +
 						 "Member.codename AS [Alias], MAT.[desc] AS [Team] " +
