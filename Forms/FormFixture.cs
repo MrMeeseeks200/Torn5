@@ -89,7 +89,7 @@ namespace Torn.UI
 
 			bool badFixture = true;
 
-			for (int i = 0; i < 100000; i++)
+			for (int i = 0; i < 10000; i++)
 			{
 				List<List<int>> mixedGrid = MixGrid(bestGrid);
 				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
@@ -256,7 +256,14 @@ namespace Torn.UI
 					List<int> row = new List<int>();
 					for (int j = 0; j < grid1[i].Count; j++)
 					{
-						row.Add(grid1[i][j] + grid2?[i]?[j] ?? 0);
+						if(grid2.Count > i && grid2[i].Count > j)
+                        {
+							row.Add(grid1[i][j] + grid2[i][j]);
+						} else
+                        {
+							row.Add(grid1[i][j]);
+                        }
+						
 					}
 					grid3.Add(row);
 				}
@@ -339,21 +346,25 @@ namespace Torn.UI
 
 		public List<List<int>> PadPlaysToTeamNumber(int numberOfTeams, List<List<int>> plays)
         {
+			Console.WriteLine(numberOfTeams);
 			List<List<int>> newGrid = plays.ConvertAll(row => row.ConvertAll(cell => cell));
-			if (numberOfTeams > newGrid.Count)
+			int teamPlays = newGrid.Count;
+			if (numberOfTeams > teamPlays)
             {
-				for(int i = plays.Count; i < numberOfTeams; i++)
+				for(int i = 0; i < teamPlays; i++)
                 {
-					List<int> arr = Enumerable.Repeat(0, plays.Count).ToList();
+					for(int j = teamPlays; j < numberOfTeams; j++)
+                    {
+						newGrid[i].Add(0);
+                    }
+				}
+				for(int i = teamPlays; i < numberOfTeams; i++)
+                {
+					List<int> arr = Enumerable.Repeat(0, numberOfTeams).ToList();
 					newGrid.Add(arr);
 				}
-				List<List<int>> transposed = TransposeGrid(newGrid);
-				for (int i = transposed.Count; i < numberOfTeams; i++)
-				{
-					List<int> arr = Enumerable.Repeat(0, transposed.Count + 1).ToList();
-					transposed.Add(arr);
-				}
-				return TransposeGrid(transposed);
+
+				return newGrid;
 			} else
             {
 				return plays;
@@ -373,6 +384,8 @@ namespace Torn.UI
 			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
 			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
 			List<List<int>> existingPlaysPadded = PadPlaysToTeamNumber((int)numberOfTeams, existingPlays);
+
+			LogGrid(existingPlaysPadded);
 
 
 			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded);

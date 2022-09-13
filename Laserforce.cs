@@ -153,7 +153,7 @@ namespace Torn
 
 			if (string.IsNullOrEmpty(LogFolder) || !Directory.Exists(LogFolder))
 				return;
-			var files = new DirectoryInfo(LogFolder).GetFiles("*" + game.Time.ToString("yyyyMMddHHmm") + " - *.tdf");
+			var files = new DirectoryInfo(LogFolder).GetFiles("*" + game.Time.ToString("yyyyMMddHHmmss") + " - *.tdf");
 			if (files.Length > 0)
 			{
 				var file = files[0].OpenText();
