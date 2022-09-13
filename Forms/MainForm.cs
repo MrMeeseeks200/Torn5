@@ -996,6 +996,8 @@ namespace Torn.UI
 
 			int box = 0;
 
+			Console.WriteLine(serverGame.Game);
+
 
 			if (serverGame.Game == null)  // This game is not yet committed. Match players to league teams.
 			{
