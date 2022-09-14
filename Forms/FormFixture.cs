@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -79,7 +80,7 @@ namespace Torn.UI
 				.ToList();
 		}
 
-		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays)
+		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis)
 		{
 			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
 			double bestScore = CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays);
@@ -89,7 +90,12 @@ namespace Torn.UI
 
 			bool badFixture = true;
 
-			for (int i = 0; i < 10000; i++)
+			Stopwatch sw = new Stopwatch();
+			sw.Start();
+			scoreLabel.Visible = false;
+			scoreLabel.Text = "";
+
+			for (int i = 0; i < 20000; i++)
 			{
 				List<List<int>> mixedGrid = MixGrid(bestGrid);
 				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
@@ -110,6 +116,8 @@ namespace Torn.UI
 
 			while(badFixture)
             {
+				if (sw.ElapsedMilliseconds > maxMillis)
+					break;
 				List<List<int>> mixedGrid = MixGrid(bestGrid);
 				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
 				if (score <= bestScore)
@@ -126,9 +134,13 @@ namespace Torn.UI
 					}
 				}
 			}
+			Console.WriteLine(sw.ElapsedMilliseconds);
 
 			Console.WriteLine("bestScore: {0}", bestScore);
 			LogGrid(bestGrid);
+			scoreLabel.Text = bestScore >= 10000 ? "Extend max time and regenerate: " + Math.Round(bestScore).ToString() : "Score: " + Math.Round(bestScore).ToString() + " (Lower is better)";
+			scoreLabel.BackColor = bestScore >= 10000 ? Color.FromName("red") : Color.Transparent;
+			scoreLabel.Visible = true;
 
 			return bestGrid;
 
@@ -223,7 +235,7 @@ namespace Torn.UI
 			foreach(List<int> row in grid)
             {
 				int uniquePlayers = row.Uniq().Count;
-				score += Math.Abs(uniquePlayers - teamsPerGame) * 10000; // penalty for playing themselves
+				score += Math.Abs(uniquePlayers - teamsPerGame) * 100000; // penalty for playing themselves
 			}
 
 			//back to back
@@ -233,10 +245,11 @@ namespace Torn.UI
 				{
 					for (int player2 = 0; player2 < teamsPerGame; player2++)
 					{
-						if (grid[game][player1] == grid[game + 1][player2])
-						{
-							score += BACK_TO_BACK_PENALTY;
-						}
+						foreach(int player in grid[game])
+                        {
+							List<int> backToBacks = grid[game + 1].FindAll(p => p == player);
+							score += BACK_TO_BACK_PENALTY * backToBacks.Count;
+                        }
 					}
 				}
 			}
@@ -395,6 +408,8 @@ namespace Torn.UI
 
 		void ButtonImportTeamsClick(object sender, EventArgs e)
 		{
+			buttonImportTeams.Text = "Generating...";
+			buttonImportTeams.Enabled = false;
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(textBoxTeams.Text, Holder.League);
 			Holder.Fixture.Games.Clear();
@@ -402,6 +417,7 @@ namespace Torn.UI
 			bool hasRef = referee.Checked;
 			double teamsPerGame = TeamsPerGame();
 			double gamesPerTeam = (double) gamesPerTeamInput.Value + (hasRef ? (double) gamesPerTeamInput.Value / (teamsPerGame - 1) : 0);
+			int maxMillis = (int)maxTime.Value * 1000;
 
 			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
 			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
@@ -410,7 +426,7 @@ namespace Torn.UI
 			LogGrid(existingPlaysPadded);
 
 
-			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded);
+			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
 
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, datePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value), TeamColours());
@@ -421,6 +437,8 @@ namespace Torn.UI
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 			reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
 			reportTeamsGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
+			buttonImportTeams.Text = "Generate";
+			buttonImportTeams.Enabled = true;
 		}
 
 		void ButtonImportGamesClick(object sender, EventArgs e)
@@ -931,11 +949,6 @@ namespace Torn.UI
 		{
 			var _ = ((NumericUpDown)sender).Value;  // This piece of black magic forces the control's ValueChanged to fire after the user edits the text in the control.
 		}
-
-        private void generate_Click(object sender, EventArgs e)
-        {
-
-        }
 
         private void ButtonEditPyramidGamesClick(object sender, EventArgs e)
 		{
