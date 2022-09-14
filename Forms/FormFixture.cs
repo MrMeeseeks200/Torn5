@@ -18,6 +18,12 @@ namespace Torn.UI
 		public Holder Holder { get; set; }
 		public string ExportFolder { get; set; }
 
+		private List<List<int>> previousGrid;
+		private double previousBestScore;
+		private double previousGamesPerTeam;
+		private bool previousHasRef;
+		private List<List<int>> previousExistingPlays;
+
 		Colour leftButton, middleButton, rightButton, xButton1, xButton2;
 		Point point;  // This is the point in the grid last clicked on. It's counted in grid squares, not in pixels: 9,9 is ninth column, ninth row.
 		bool resizing;
@@ -85,10 +91,18 @@ namespace Torn.UI
 			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
 			double bestScore = CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays);
 
+			return ContinueMixing(bestGrid, gamesPerTeam, hasRef, existingPlays, maxMillis, bestScore);
+
+		}
+
+		List<List<int>> ContinueMixing(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis, double startingScore)
+        {
+			List<List<int>> bestGrid = grid;
+			double bestScore = startingScore;
+			bool badFixture = bestScore > 10000;
+
 			Console.WriteLine("initScore: {0}", bestScore);
 			LogGrid(bestGrid);
-
-			bool badFixture = true;
 
 			Stopwatch sw = new Stopwatch();
 			sw.Start();
@@ -99,23 +113,23 @@ namespace Torn.UI
 			{
 				List<List<int>> mixedGrid = MixGrid(bestGrid);
 				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
-				if(score <= bestScore)
-                {
+				if (score <= bestScore)
+				{
 					bestScore = score;
 					bestGrid = mixedGrid;
-					if(bestScore > 10000)
-                    {
+					if (bestScore > 10000)
+					{
 						badFixture = true;
-                    }
-                    else
-                    {
+					}
+					else
+					{
 						badFixture = false;
-                    }
-                }
+					}
+				}
 			}
 
-			while(badFixture)
-            {
+			while (badFixture)
+			{
 				if (sw.ElapsedMilliseconds > maxMillis)
 					break;
 				List<List<int>> mixedGrid = MixGrid(bestGrid);
@@ -142,8 +156,15 @@ namespace Torn.UI
 			scoreLabel.BackColor = bestScore >= 10000 ? Color.FromName("red") : Color.Transparent;
 			scoreLabel.Visible = true;
 
-			return bestGrid;
+			previousGrid = bestGrid;
+			previousBestScore = bestScore;
+			previousGamesPerTeam = gamesPerTeam;
+			previousHasRef = hasRef;
+			previousExistingPlays = existingPlays;
+			continueGenerating.Enabled = true;
 
+
+			return bestGrid;
 		}
 
 		List<List<int>> MixGrid(List<List<int>> grid)
@@ -410,6 +431,7 @@ namespace Torn.UI
 		{
 			buttonImportTeams.Text = "Generating...";
 			buttonImportTeams.Enabled = false;
+			continueGenerating.Enabled = false;
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(textBoxTeams.Text, Holder.League);
 			Holder.Fixture.Games.Clear();
@@ -429,8 +451,30 @@ namespace Torn.UI
 			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
 
 
-			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, datePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value), TeamColours());
+			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, timePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value), TeamColours());
 
+
+			textBoxTeams.Text = Holder.Fixture.Teams.ToString();
+			textBoxGames.Text = Holder.Fixture.Games.ToString();
+			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
+			reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
+			reportTeamsGrid.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
+			buttonImportTeams.Text = "Generate";
+			buttonImportTeams.Enabled = true;
+		}
+
+		private void ContinueGenerateClick(object sender, EventArgs e)
+		{
+			Holder.Fixture.Teams.Clear();
+			Holder.Fixture.Teams.Parse(textBoxTeams.Text, Holder.League);
+			Holder.Fixture.Games.Clear();
+			buttonImportTeams.Text = "Generating...";
+			buttonImportTeams.Enabled = false;
+			continueGenerating.Enabled = false;
+			int maxMillis = (int)maxTime.Value * 1000;
+			List<List<int>> grid = ContinueMixing(previousGrid, previousGamesPerTeam, previousHasRef, previousExistingPlays, maxMillis, previousBestScore);
+
+			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, timePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value), TeamColours());
 
 			textBoxTeams.Text = Holder.Fixture.Teams.ToString();
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
