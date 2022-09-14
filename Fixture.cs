@@ -199,7 +199,7 @@ namespace Torn
 			}
 		}
 
-		public void Parse(List<List<int>> grid, FixtureTeams teams, DateTime firstGame, TimeSpan duration)
+		public void Parse(List<List<int>> grid, FixtureTeams teams, DateTime firstGame, TimeSpan duration, string colours = "1,2,4,17")
         {
 			string str = "";
 
@@ -215,7 +215,7 @@ namespace Torn
 				str += "\r\n";
 			}
 
-			Parse(str, teams, '\t', "1,2,4,17");
+			Parse(str, teams, '\t', colours);
 
         }
 

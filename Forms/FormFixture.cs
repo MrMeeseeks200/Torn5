@@ -371,15 +371,37 @@ namespace Torn.UI
             }
         }
 
+		double TeamsPerGame()
+        {
+			double teamsPerGame = 0;
+			teamsPerGame += red.Checked ? 1 : 0;
+			teamsPerGame += yellow.Checked ? 1 : 0;
+			teamsPerGame += green.Checked ? 1 : 0;
+			teamsPerGame += blue.Checked ? 1 : 0;
+			teamsPerGame += referee.Checked ? 1 : 0;
+			return teamsPerGame;
+		}
+
+		string TeamColours()
+		{
+			string colours = "";
+			colours += red.Checked ? "1," : "";
+			colours += blue.Checked ? "2," : "";
+			colours += yellow.Checked ? "4," : "";
+			colours += green.Checked ? "3," : "";
+			colours += referee.Checked ? "17," : "";
+			return colours;
+		}
+
 		void ButtonImportTeamsClick(object sender, EventArgs e)
 		{
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(textBoxTeams.Text, Holder.League);
 			Holder.Fixture.Games.Clear();
 			double numberOfTeams = Holder.Fixture.Teams.Count;
-			double teamsPerGame = 4;
-			double gamesPerTeam = 4;
-			bool hasRef = true;
+			bool hasRef = referee.Checked;
+			double teamsPerGame = TeamsPerGame();
+			double gamesPerTeam = (double) gamesPerTeamInput.Value + (hasRef ? (double) gamesPerTeamInput.Value / (teamsPerGame - 1) : 0);
 
 			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
 			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
@@ -391,7 +413,7 @@ namespace Torn.UI
 			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded);
 
 
-			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, datePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value));
+			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, datePicker.Value, TimeSpan.FromMinutes((double)numericMinutes.Value), TeamColours());
 
 
 			textBoxTeams.Text = Holder.Fixture.Teams.ToString();

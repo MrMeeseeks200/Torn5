@@ -42,6 +42,7 @@ namespace Torn.UI
             this.textBoxGames = new System.Windows.Forms.TextBox();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabTeams = new System.Windows.Forms.TabPage();
+            this.gamesPerTeamInput = new System.Windows.Forms.NumericUpDown();
             this.reportTeamsGrid = new Torn5.Controls.DisplayReport();
             this.reportTeamsList = new Torn5.Controls.DisplayReport();
             this.tabGamesList = new System.Windows.Forms.TabPage();
@@ -136,8 +137,15 @@ namespace Torn.UI
             this.displayReportTaken = new Torn5.Controls.DisplayReport();
             this.displayReportDraw = new Torn5.Controls.DisplayReport();
             this.printReportDraw = new Torn5.Controls.PrintReport();
+            this.label22 = new System.Windows.Forms.Label();
+            this.red = new System.Windows.Forms.CheckBox();
+            this.blue = new System.Windows.Forms.CheckBox();
+            this.yellow = new System.Windows.Forms.CheckBox();
+            this.green = new System.Windows.Forms.CheckBox();
+            this.referee = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabTeams.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.gamesPerTeamInput)).BeginInit();
             this.tabGamesList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainerGamesList)).BeginInit();
             this.splitContainerGamesList.Panel1.SuspendLayout();
@@ -188,7 +196,7 @@ namespace Torn.UI
             this.textBoxTeams.Multiline = true;
             this.textBoxTeams.Name = "textBoxTeams";
             this.textBoxTeams.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBoxTeams.Size = new System.Drawing.Size(588, 640);
+            this.textBoxTeams.Size = new System.Drawing.Size(588, 630);
             this.textBoxTeams.TabIndex = 11;
             this.textBoxTeams.Text = "Team 1\r\nTeam 2\r\nTeam 3\r\netc.";
             this.textBoxTeams.WordWrap = false;
@@ -201,7 +209,7 @@ namespace Torn.UI
             this.buttonImportTeams.Name = "buttonImportTeams";
             this.buttonImportTeams.Size = new System.Drawing.Size(75, 23);
             this.buttonImportTeams.TabIndex = 10;
-            this.buttonImportTeams.Text = "Import";
+            this.buttonImportTeams.Text = "Generate";
             this.buttonImportTeams.UseVisualStyleBackColor = true;
             this.buttonImportTeams.Click += new System.EventHandler(this.ButtonImportTeamsClick);
             // 
@@ -322,6 +330,13 @@ namespace Torn.UI
             // 
             // tabTeams
             // 
+            this.tabTeams.Controls.Add(this.referee);
+            this.tabTeams.Controls.Add(this.green);
+            this.tabTeams.Controls.Add(this.yellow);
+            this.tabTeams.Controls.Add(this.blue);
+            this.tabTeams.Controls.Add(this.red);
+            this.tabTeams.Controls.Add(this.label22);
+            this.tabTeams.Controls.Add(this.gamesPerTeamInput);
             this.tabTeams.Controls.Add(this.reportTeamsGrid);
             this.tabTeams.Controls.Add(this.reportTeamsList);
             this.tabTeams.Controls.Add(this.textBoxTeams);
@@ -334,6 +349,23 @@ namespace Torn.UI
             this.tabTeams.TabIndex = 0;
             this.tabTeams.Text = "Teams";
             this.tabTeams.UseVisualStyleBackColor = true;
+            // 
+            // gamesPerTeamInput
+            // 
+            this.gamesPerTeamInput.Location = new System.Drawing.Point(424, 675);
+            this.gamesPerTeamInput.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.gamesPerTeamInput.Name = "gamesPerTeamInput";
+            this.gamesPerTeamInput.Size = new System.Drawing.Size(89, 20);
+            this.gamesPerTeamInput.TabIndex = 14;
+            this.gamesPerTeamInput.Value = new decimal(new int[] {
+            3,
+            0,
+            0,
+            0});
             // 
             // reportTeamsGrid
             // 
@@ -1517,6 +1549,73 @@ namespace Torn.UI
             this.printReportDraw.Size = new System.Drawing.Size(64, 440);
             this.printReportDraw.TabIndex = 15;
             // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.Location = new System.Drawing.Point(421, 659);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(89, 13);
+            this.label22.TabIndex = 15;
+            this.label22.Text = "Games Per Team";
+            // 
+            // red
+            // 
+            this.red.AutoSize = true;
+            this.red.Checked = true;
+            this.red.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.red.Location = new System.Drawing.Point(9, 673);
+            this.red.Name = "red";
+            this.red.Size = new System.Drawing.Size(46, 17);
+            this.red.TabIndex = 16;
+            this.red.Text = "Red";
+            this.red.UseVisualStyleBackColor = true;
+            // 
+            // blue
+            // 
+            this.blue.AutoSize = true;
+            this.blue.Checked = true;
+            this.blue.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.blue.Location = new System.Drawing.Point(61, 673);
+            this.blue.Name = "blue";
+            this.blue.Size = new System.Drawing.Size(47, 17);
+            this.blue.TabIndex = 17;
+            this.blue.Text = "Blue";
+            this.blue.UseVisualStyleBackColor = true;
+            // 
+            // yellow
+            // 
+            this.yellow.AutoSize = true;
+            this.yellow.Checked = true;
+            this.yellow.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.yellow.Location = new System.Drawing.Point(114, 673);
+            this.yellow.Name = "yellow";
+            this.yellow.Size = new System.Drawing.Size(57, 17);
+            this.yellow.TabIndex = 18;
+            this.yellow.Text = "Yellow";
+            this.yellow.UseVisualStyleBackColor = true;
+            // 
+            // green
+            // 
+            this.green.AutoSize = true;
+            this.green.Location = new System.Drawing.Point(177, 673);
+            this.green.Name = "green";
+            this.green.Size = new System.Drawing.Size(55, 17);
+            this.green.TabIndex = 19;
+            this.green.Text = "Green";
+            this.green.UseVisualStyleBackColor = true;
+            // 
+            // referee
+            // 
+            this.referee.AutoSize = true;
+            this.referee.Checked = true;
+            this.referee.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.referee.Location = new System.Drawing.Point(238, 673);
+            this.referee.Name = "referee";
+            this.referee.Size = new System.Drawing.Size(43, 17);
+            this.referee.TabIndex = 20;
+            this.referee.Text = "Ref";
+            this.referee.UseVisualStyleBackColor = true;
+            // 
             // FormFixture
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1531,6 +1630,7 @@ namespace Torn.UI
             this.tabControl1.ResumeLayout(false);
             this.tabTeams.ResumeLayout(false);
             this.tabTeams.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.gamesPerTeamInput)).EndInit();
             this.tabGamesList.ResumeLayout(false);
             this.splitContainerGamesList.Panel1.ResumeLayout(false);
             this.splitContainerGamesList.Panel1.PerformLayout();
@@ -1689,5 +1789,12 @@ namespace Torn.UI
         private System.Windows.Forms.Button generate;
         private Torn5.Controls.DisplayReport reportTeamsList;
         private Torn5.Controls.DisplayReport reportTeamsGrid;
+        private System.Windows.Forms.NumericUpDown gamesPerTeamInput;
+        private System.Windows.Forms.CheckBox red;
+        private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.CheckBox referee;
+        private System.Windows.Forms.CheckBox green;
+        private System.Windows.Forms.CheckBox yellow;
+        private System.Windows.Forms.CheckBox blue;
     }
 }
