@@ -848,7 +848,6 @@ namespace Torn.UI
 				Console.WriteLine("Time: " + time);
 				if (timeNode.InnerText == gameTime)
                 {
-					Console.WriteLine("AAAA");
 					if (gameNode.SelectSingleNode("title") == null)
                     {
 						doc.AppendNode(gameNode, "title", description);

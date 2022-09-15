@@ -972,7 +972,6 @@ namespace Torn
 
 				teamData.GameTeam.Players.ForEach((player) => {
 					LeaguePlayer leaguePlayer = Players.Find((p) => p.Id == player.PlayerId);
-					Console.WriteLine(leaguePlayer.Name + " " + leaguePlayer.Grade);
 					player.Grade = leaguePlayer.Grade;
 				});
 
