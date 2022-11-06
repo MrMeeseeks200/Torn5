@@ -94,20 +94,22 @@ namespace Torn5.Controls
 			UdpClient udp = new UdpClient();
 			IPEndPoint groupEP = new IPEndPoint(IPAddress.Parse("255.255.255.255"), TBOARD_SOCKET);
 
-			string result = DisplayReport.Report.ToTBoard();
+			// string result = DisplayReport.Report.ToTBoard();
+			string result = DisplayReport.Report.ToSvg();
 
 			List<string> strs = result.Split(510).ToList();
 
 			foreach(string str in strs)
             {
-				string index = strs.IndexOf(str).ToString().PadLeft(2, '0');
-				string chunk = index + str + "\x00";
-				byte[] sendBytes = Encoding.ASCII.GetBytes(chunk);
+				// string index = strs.IndexOf(str).ToString().PadLeft(2, '0');
+				// string chunk = index + str + "\x00";
+				byte[] sendBytes = Encoding.ASCII.GetBytes(str);
 				udp.Send(sendBytes, sendBytes.Length, groupEP);
 			}
 
 			string emptyIndex = strs.Count().ToString().PadLeft(2, '0');
-			byte[] sendBytesEnd = Encoding.ASCII.GetBytes(emptyIndex + "\x00");
+			// byte[] sendBytesEnd = Encoding.ASCII.GetBytes(emptyIndex + "\x00");
+			byte[] sendBytesEnd = Encoding.ASCII.GetBytes("ENDMSG");
 			udp.Send(sendBytesEnd, sendBytesEnd.Length, groupEP);
 		}
     }
