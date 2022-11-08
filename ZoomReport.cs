@@ -724,6 +724,18 @@ namespace Zoom
 			return document.Draw();
 		}
 
+		public string ToSvgString()
+		{
+			string str = "";
+			using (StringWriter sw = new StringWriter())
+			{
+				sw.Write(ToSvg());
+				str = sw.ToString();
+			}
+
+			return str;
+		}
+
 		public override string ToCsv(char separator)
 		{
 			StringBuilder s = new StringBuilder();

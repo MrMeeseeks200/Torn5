@@ -94,25 +94,33 @@ namespace Torn5.Controls
 			UdpClient udp = new UdpClient();
 			IPEndPoint groupEP = new IPEndPoint(IPAddress.Parse("255.255.255.255"), TBOARD_SOCKET);
 
-			// string result = DisplayReport.Report.ToTBoard();
-			string result = DisplayReport.Report.ToSvg();
+			Bitmap bitmap = DisplayReport.Report.ToBitmap(4);
 
-			List<string> strs = result.Split(510).ToList();
+			byte[] bytes = ImageToByte(bitmap);
 
-			foreach(string str in strs)
+			byte[][] chunks = bytes
+					.Select((s, i) => new { Value = s, Index = i })
+					.GroupBy(x => x.Index / 510)
+					.Select(grp => grp.Select(x => x.Value).ToArray())
+					.ToArray();
+
+			Console.WriteLine(chunks.Length);
+
+			foreach(byte[] chunk in chunks)
             {
-				// string index = strs.IndexOf(str).ToString().PadLeft(2, '0');
-				// string chunk = index + str + "\x00";
-				byte[] sendBytes = Encoding.ASCII.GetBytes(str);
-				udp.Send(sendBytes, sendBytes.Length, groupEP);
+				Console.WriteLine(chunk.Length);
+				udp.Send(chunk, chunk.Length, groupEP);
 			}
-
-			string emptyIndex = strs.Count().ToString().PadLeft(2, '0');
-			// byte[] sendBytesEnd = Encoding.ASCII.GetBytes(emptyIndex + "\x00");
 			byte[] sendBytesEnd = Encoding.ASCII.GetBytes("ENDMSG");
 			udp.Send(sendBytesEnd, sendBytesEnd.Length, groupEP);
 		}
-    }
+		public static byte[] ImageToByte(Bitmap img)
+		{
+			ImageConverter converter = new ImageConverter();
+			return (byte[])converter.ConvertTo(img, typeof(byte[]));
+		}
+	}
+
 	public static class Extensions
 	{
 		public static IEnumerable<string> Split(this string str, int n)
