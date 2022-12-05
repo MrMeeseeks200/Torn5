@@ -257,11 +257,6 @@ namespace Torn
 		{
 			List<LeagueTeam> teams = league.GetTeamLadder();
 
-			foreach (LeagueTeam t in teams)
-			{
-				Console.WriteLine(t.Name);
-			}
-
 			var f = new Finals
 			{
 				NumTeams = teams.Count,
