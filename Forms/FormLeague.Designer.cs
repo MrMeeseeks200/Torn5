@@ -87,6 +87,9 @@ namespace Torn.UI
             this.labelBonus = new System.Windows.Forms.Label();
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
+            this.pointPercentBox = new System.Windows.Forms.TabPage();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -104,6 +107,7 @@ namespace Torn.UI
             ((System.ComponentModel.ISupportInitialize)(this.missingPlayerPenalty)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.teamSize)).BeginInit();
             this.GradesPage.SuspendLayout();
+            this.pointPercentBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // treeView1
@@ -296,6 +300,7 @@ namespace Torn.UI
             this.tabControl1.Controls.Add(this.scoresPage);
             this.tabControl1.Controls.Add(this.HandicapPage);
             this.tabControl1.Controls.Add(this.GradesPage);
+            this.tabControl1.Controls.Add(this.pointPercentBox);
             this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
@@ -748,6 +753,37 @@ namespace Torn.UI
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
+            // pointPercentBox
+            // 
+            this.pointPercentBox.AutoScroll = true;
+            this.pointPercentBox.Controls.Add(this.label3);
+            this.pointPercentBox.Controls.Add(this.label2);
+            this.pointPercentBox.Location = new System.Drawing.Point(4, 22);
+            this.pointPercentBox.Name = "pointPercentBox";
+            this.pointPercentBox.Padding = new System.Windows.Forms.Padding(3);
+            this.pointPercentBox.Size = new System.Drawing.Size(265, 328);
+            this.pointPercentBox.TabIndex = 4;
+            this.pointPercentBox.Text = "Points to %";
+            this.pointPercentBox.UseVisualStyleBackColor = true;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(19, 44);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(36, 13);
+            this.label2.TabIndex = 0;
+            this.label2.Text = "Points";
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(92, 44);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(62, 13);
+            this.label3.TabIndex = 1;
+            this.label3.Text = "Percentage";
+            // 
             // FormLeague
             // 
             this.AcceptButton = this.buttonOK;
@@ -786,6 +822,8 @@ namespace Torn.UI
             ((System.ComponentModel.ISupportInitialize)(this.teamSize)).EndInit();
             this.GradesPage.ResumeLayout(false);
             this.GradesPage.PerformLayout();
+            this.pointPercentBox.ResumeLayout(false);
+            this.pointPercentBox.PerformLayout();
             this.ResumeLayout(false);
 
 		}
@@ -846,5 +884,8 @@ namespace Torn.UI
         private System.Windows.Forms.CheckBox hitsTieBreak;
 		private System.Windows.Forms.NumericUpDown numericHighScore;
 		private System.Windows.Forms.Label labelHighScore;
-	}
+        private System.Windows.Forms.TabPage pointPercentBox;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label2;
+    }
 }

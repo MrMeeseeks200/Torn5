@@ -663,6 +663,18 @@ namespace Torn
 		}
 	}
 
+	public class PointPercent
+    {
+		public decimal Points { get; set; }
+		public decimal Percent { get; set; }
+
+		public PointPercent(decimal points, decimal percent)
+        {
+			Points = points;
+			Percent = percent;
+        }
+	}
+
 	/// <summary>Load and manage a .Torn league file, containing league teams and games.</summary>
 	public class League
 	{
@@ -710,6 +722,8 @@ namespace Torn
 
 		public List<Grade> Grades { get; set; }
 
+		public List<PointPercent> PointPercents { get; set; }
+
 		public int ExpectedTeamSize { get; set; }
 		public decimal MissingPlayerPenalty { get; set; }
 		public decimal ExtraAPenalty { get; set; }
@@ -726,6 +740,49 @@ namespace Torn
 			new Grade("E", 1, false, false),
 			new Grade("F", 0, false, false),
 			new Grade("G", 0, false, true)
+		};
+
+		private readonly List<PointPercent> DEFAULT_CAP = new List<PointPercent>
+		{
+			new PointPercent(-4,260),
+			new PointPercent(-3,240),
+			new PointPercent(-2,220),
+			new PointPercent(-1,200),
+			new PointPercent(0,180),
+			new PointPercent(1,170),
+			new PointPercent(2,160),
+			new PointPercent(3,155),
+			new PointPercent(4,150),
+			new PointPercent(5,145),
+			new PointPercent(6,140),
+			new PointPercent(7,135),
+			new PointPercent(8,130),
+			new PointPercent(9,127),
+			new PointPercent(10,125),
+			new PointPercent(11,123),
+			new PointPercent(12,120),
+			new PointPercent(13,117),
+			new PointPercent(14,115),
+			new PointPercent(15,113),
+			new PointPercent(16,110),
+			new PointPercent(17,107),
+			new PointPercent(18,105),
+			new PointPercent(19,103),
+			new PointPercent(20,100),
+			new PointPercent(21,100),
+			new PointPercent(22,97),
+			new PointPercent(23,95),
+			new PointPercent(24,92),
+			new PointPercent(25,90),
+			new PointPercent(26,87),
+			new PointPercent(27,85),
+			new PointPercent(28,82),
+			new PointPercent(29,80),
+			new PointPercent(30,77),
+			new PointPercent(31,75),
+			new PointPercent(32,72),
+			new PointPercent(33,70),
+			new PointPercent(34,65),
 		};
 
 		// CAP USED IN WA LEAGUES
@@ -794,6 +851,7 @@ namespace Torn
 			GridPlayers = 6;
 			HandicapStyle = HandicapStyle.Percent;
 			Grades = DEFAULT_GRADES;
+			PointPercents = DEFAULT_CAP;
 			ExpectedTeamSize = 5;
 			MissingPlayerPenalty = 2;
 			ExtraAPenalty = 1;
@@ -1137,6 +1195,26 @@ namespace Torn
 				Grades = DEFAULT_GRADES;
             }
 
+			XmlNode capsNode = root.SelectSingleNode("caps");
+
+			if(capsNode != null)
+            {
+				XmlNodeList xcaps = capsNode.SelectNodes("cap");
+
+				List<PointPercent> pointPercents = new List<PointPercent>();
+
+				foreach (XmlNode xcap in xcaps)
+				{
+					PointPercent pointPercent = new PointPercent(xcap.GetDecimal("points"), xcap.GetDecimal("percent"));
+					pointPercents.Add(pointPercent);
+				}
+				PointPercents = pointPercents;
+			} else
+            {
+				PointPercents = DEFAULT_CAP;
+
+			}
+
 			XmlNodeList xteams = root.SelectSingleNode("leaguelist").SelectNodes("team");
 
 			foreach (XmlNode xteam in xteams)
@@ -1326,6 +1404,18 @@ namespace Torn
 					doc.AppendNode(gradeNode, "hasPenalty", 1);
 				if (grade.HasBonus)
 				doc.AppendNode(gradeNode, "hasBonus", 1);
+			}
+
+			XmlNode capsNode = doc.CreateElement("caps");
+			bodyNode.AppendChild(capsNode);
+
+			foreach (PointPercent pointPercent in PointPercents)
+			{
+				XmlNode capNode = doc.CreateElement("cap");
+				capsNode.AppendChild(capNode);
+
+				doc.AppendNode(capNode, "percent", pointPercent.Percent.ToString());
+				doc.AppendNode(capNode, "points", pointPercent.Points.ToString());
 			}
 
 			foreach (double point in victoryPoints)
