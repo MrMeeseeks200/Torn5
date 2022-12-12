@@ -47,7 +47,6 @@ namespace Torn5.Controls
 
         private void OnChanged(object sender, EventArgs e)
         {
-            Console.WriteLine("AAAAAAAAA");
             ValueChanged?.Invoke(this, e);
         }
     }

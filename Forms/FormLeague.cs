@@ -18,7 +18,7 @@ namespace Torn.UI
 
 		readonly List<NumericUpDown> victory = new List<NumericUpDown>();  // A list of victory points boxes.
 		readonly List<GradeEditor> Grades = new List<GradeEditor>();
-		readonly List<PointPercentEditor> PointPercents = new List<PointPercentEditor>();
+		List<PointPercentEditor> PointPercents = new List<PointPercentEditor>();
 
 		public FormLeague()
 		{
@@ -513,7 +513,6 @@ namespace Torn.UI
 
 		private void PointPercentChanged(object sender, EventArgs e)
 		{
-			Console.WriteLine("HERE");
 			if(loading)
 				return;
 
@@ -524,6 +523,31 @@ namespace Torn.UI
 
 			if (PointPercents.Any() && PointPercents.Last().HasValue())
 				SetPointPercentBox(PointPercents.Count);
+		}
+
+		private void loadPresetPoints(List<PointPercent> presetPoints)
+        {
+			SetPointPercentBox(presetPoints.Count);
+			for (int i = 0; i < presetPoints.Count; i++)
+				PointPercents[i].pointPercent = presetPoints[i];
+			for (int i = presetPoints.Count; i < PointPercents.Count; i++)
+				PointPercents[i].pointPercent = new PointPercent(0, 0);
+		}
+
+        private void waLeaguePoints_Click(object sender, EventArgs e)
+		{
+			loadPresetPoints(League.WA_LEAGUE_POINTS);
+		}
+
+        private void waDoubles_Click(object sender, EventArgs e)
+        {
+			loadPresetPoints(League.WA_DOUBLES_POINTS);
+
+		}
+
+        private void waTriples_Click(object sender, EventArgs e)
+        {
+			loadPresetPoints(League.WA_TRIPLES_POINTS);
 		}
 	}
 }

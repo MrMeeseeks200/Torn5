@@ -85,11 +85,14 @@ namespace Torn.UI
             this.labelPoints = new System.Windows.Forms.Label();
             this.labelPenalty = new System.Windows.Forms.Label();
             this.labelBonus = new System.Windows.Forms.Label();
+            this.pointPercentBox = new System.Windows.Forms.TabPage();
+            this.waLeaguePoints = new System.Windows.Forms.Button();
+            this.label3 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
-            this.pointPercentBox = new System.Windows.Forms.TabPage();
-            this.label2 = new System.Windows.Forms.Label();
-            this.label3 = new System.Windows.Forms.Label();
+            this.waDoubles = new System.Windows.Forms.Button();
+            this.waTriples = new System.Windows.Forms.Button();
             this.contextMenuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -731,6 +734,50 @@ namespace Torn.UI
             this.labelBonus.TabIndex = 25;
             this.labelBonus.Text = "Bonus";
             // 
+            // pointPercentBox
+            // 
+            this.pointPercentBox.AutoScroll = true;
+            this.pointPercentBox.Controls.Add(this.waTriples);
+            this.pointPercentBox.Controls.Add(this.waDoubles);
+            this.pointPercentBox.Controls.Add(this.waLeaguePoints);
+            this.pointPercentBox.Controls.Add(this.label3);
+            this.pointPercentBox.Controls.Add(this.label2);
+            this.pointPercentBox.Location = new System.Drawing.Point(4, 22);
+            this.pointPercentBox.Name = "pointPercentBox";
+            this.pointPercentBox.Padding = new System.Windows.Forms.Padding(3);
+            this.pointPercentBox.Size = new System.Drawing.Size(265, 328);
+            this.pointPercentBox.TabIndex = 4;
+            this.pointPercentBox.Text = "Points to %";
+            this.pointPercentBox.UseVisualStyleBackColor = true;
+            // 
+            // waLeaguePoints
+            // 
+            this.waLeaguePoints.Location = new System.Drawing.Point(8, 6);
+            this.waLeaguePoints.Name = "waLeaguePoints";
+            this.waLeaguePoints.Size = new System.Drawing.Size(75, 23);
+            this.waLeaguePoints.TabIndex = 2;
+            this.waLeaguePoints.Text = "WA League";
+            this.waLeaguePoints.UseVisualStyleBackColor = true;
+            this.waLeaguePoints.Click += new System.EventHandler(this.waLeaguePoints_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(92, 44);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(62, 13);
+            this.label3.TabIndex = 1;
+            this.label3.Text = "Percentage";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(19, 44);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(36, 13);
+            this.label2.TabIndex = 0;
+            this.label2.Text = "Points";
+            // 
             // buttonOK
             // 
             this.buttonOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
@@ -753,36 +800,25 @@ namespace Torn.UI
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
-            // pointPercentBox
+            // waDoubles
             // 
-            this.pointPercentBox.AutoScroll = true;
-            this.pointPercentBox.Controls.Add(this.label3);
-            this.pointPercentBox.Controls.Add(this.label2);
-            this.pointPercentBox.Location = new System.Drawing.Point(4, 22);
-            this.pointPercentBox.Name = "pointPercentBox";
-            this.pointPercentBox.Padding = new System.Windows.Forms.Padding(3);
-            this.pointPercentBox.Size = new System.Drawing.Size(265, 328);
-            this.pointPercentBox.TabIndex = 4;
-            this.pointPercentBox.Text = "Points to %";
-            this.pointPercentBox.UseVisualStyleBackColor = true;
+            this.waDoubles.Location = new System.Drawing.Point(89, 6);
+            this.waDoubles.Name = "waDoubles";
+            this.waDoubles.Size = new System.Drawing.Size(75, 23);
+            this.waDoubles.TabIndex = 3;
+            this.waDoubles.Text = "WA Doubles";
+            this.waDoubles.UseVisualStyleBackColor = true;
+            this.waDoubles.Click += new System.EventHandler(this.waDoubles_Click);
             // 
-            // label2
+            // waTriples
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(19, 44);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(36, 13);
-            this.label2.TabIndex = 0;
-            this.label2.Text = "Points";
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(92, 44);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(62, 13);
-            this.label3.TabIndex = 1;
-            this.label3.Text = "Percentage";
+            this.waTriples.Location = new System.Drawing.Point(170, 6);
+            this.waTriples.Name = "waTriples";
+            this.waTriples.Size = new System.Drawing.Size(75, 23);
+            this.waTriples.TabIndex = 4;
+            this.waTriples.Text = "WA Triples";
+            this.waTriples.UseVisualStyleBackColor = true;
+            this.waTriples.Click += new System.EventHandler(this.waTriples_Click);
             // 
             // FormLeague
             // 
@@ -887,5 +923,8 @@ namespace Torn.UI
         private System.Windows.Forms.TabPage pointPercentBox;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button waLeaguePoints;
+        private System.Windows.Forms.Button waDoubles;
+        private System.Windows.Forms.Button waTriples;
     }
 }
