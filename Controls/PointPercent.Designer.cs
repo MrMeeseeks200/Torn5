@@ -52,6 +52,7 @@ namespace Torn5.Controls
             this.points.Size = new System.Drawing.Size(46, 20);
             this.points.TabIndex = 40;
             this.points.Tag = "";
+            this.points.ValueChanged += new System.EventHandler(this.OnChanged);
             // 
             // percentage
             // 
@@ -66,14 +67,15 @@ namespace Torn5.Controls
             this.percentage.Size = new System.Drawing.Size(70, 20);
             this.percentage.TabIndex = 41;
             this.percentage.Tag = "";
+            this.percentage.ValueChanged += new System.EventHandler(this.OnChanged);
             // 
-            // PointPercent
+            // PointPercentEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.percentage);
             this.Controls.Add(this.points);
-            this.Name = "PointPercent";
+            this.Name = "PointPercentEditor";
             this.Size = new System.Drawing.Size(150, 25);
             ((System.ComponentModel.ISupportInitialize)(this.points)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.percentage)).EndInit();

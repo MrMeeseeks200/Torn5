@@ -791,22 +791,31 @@ namespace Torn
 
 		public int GetAutoHandicap(int points)
         {
-			if(points >= 0)
+			PointPercent pointPercent = PointPercents.Find((pp) => pp.Points == points);
+			if (pointPercent == null && PointPercents.Count() > 1)
             {
-				if(points < PositiveCap.Count())
-                {
-					return PositiveCap[points];
-                }
+				List<PointPercent> sortedPointPercents = PointPercents.OrderBy(p => p.Points).ToList();
+				PointPercent minPointPercent = sortedPointPercents[0];
+				PointPercent maxPointPercent = sortedPointPercents[sortedPointPercents.Count - 1];
 
-				int outOfRangeBy = points - PositiveCap.Count() - 1;
-				int lastValue = PositiveCap[PositiveCap.Count() - 1];
-				int multiplier = 5;
-				int result = lastValue - (multiplier * outOfRangeBy);
-				// cannot return a negative value to limit cap to 1%
-				return Math.Max(1, result);
+				if (points < minPointPercent.Points)
+                {
+					PointPercent secondSmallestPointPercent = sortedPointPercents[1];
+					decimal diffPoints = Math.Abs(points - minPointPercent.Points);
+					decimal diff = Math.Abs(secondSmallestPointPercent.Percent - minPointPercent.Percent) * diffPoints;
+					int result = Math.Max(Convert.ToInt32(minPointPercent.Percent + diff), 1);
+					return result;
+				}
+				if (points > maxPointPercent.Points)
+				{
+					PointPercent secondLargestPointPercent = sortedPointPercents[sortedPointPercents.Count - 2];
+					decimal diffPoints = Math.Abs(points - maxPointPercent.Points);
+					decimal diff = Math.Abs(secondLargestPointPercent.Percent - maxPointPercent.Percent) * diffPoints;
+					int result = Convert.ToInt32(maxPointPercent.Percent - diff);
+					return result;
+				}
 			}
-			int capToAdd = points * -20;
-			return PositiveCap[0] + capToAdd;
+			return Convert.ToInt32(pointPercent.Percent);
         }
 
 		public decimal GetGradePoints(string playerGrade)
