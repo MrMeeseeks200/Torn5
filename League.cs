@@ -389,6 +389,30 @@ namespace Torn
 		}
 	}
 
+	public enum TermType
+	{
+		Yellow,
+		Red,
+		Verbal,
+		Other
+	}
+
+	public class TermRecord
+    {
+		public TermType Type { get; set; }
+		public DateTime Time { get; set; }
+		public int Value { get; set; }
+		public string Reason { get; set; }
+
+		public TermRecord(TermType type, DateTime time, int value, string reason = "")
+        {
+			Type = type;
+			Time = time;
+			Value = value;
+			Reason = reason;
+        }
+	}
+
 	/// <summary>Stores data about a player in a single game. (This is different from LeaguePlayer.)</summary>
 	public class GamePlayer: IComparable
 	{
@@ -409,6 +433,17 @@ namespace Torn
 		public int BaseDenied { get; set; }
 		public int YellowCards { get; set; }
 		public int RedCards { get; set; }
+		public List<TermRecord> TermRecords { get; set; }
+
+		public void AddTermRecord(TermRecord termRecord)
+        {
+			if(TermRecords == null)
+            {
+				TermRecords = new List<TermRecord>();
+            }
+			TermRecords.Add(termRecord);
+			Console.WriteLine("Terms " + TermRecords.Count());
+        }
 
 		/// <summary>Used for accumulating data to be used for a team total, a game average, etc.</summary>
 		public void Add(GamePlayer source)
@@ -448,6 +483,7 @@ namespace Torn
 			target.BaseDenied = BaseDenied;
 			target.YellowCards = YellowCards;
 			target.RedCards = RedCards;
+			target.TermRecords = TermRecords;
 
 			return target;
 		}
@@ -1374,6 +1410,20 @@ namespace Torn
 					if (xplayer.SelectSingleNode("colour") != null)
 						gamePlayer.Colour = (Colour)(xplayer.GetInt("colour") + 1);
 
+					if (xplayer.SelectSingleNode("terms") != null)
+					{
+						XmlNodeList xterms = xplayer.SelectSingleNode("terms").SelectNodes("term");
+
+						foreach (XmlNode xterm in xterms)
+						{
+							TermType termType;
+							TermType.TryParse(xterm.GetString("type"), out termType);
+							TermRecord termRecord = new TermRecord(termType, DateTime.Parse(xterm.GetString("time")), xterm.GetInt("value"), xterm.GetString("reason"));
+
+							gamePlayer.AddTermRecord(termRecord);
+						}
+					}
+
 					game.UnallocatedPlayers.Add(gamePlayer);
 				}
 				
@@ -1567,6 +1617,23 @@ namespace Torn
 					doc.AppendNonZero(playerNode, "redcards", player.RedCards);
 
 					doc.AppendNode(playerNode, "colour", ((int)player.Colour) - 1);
+
+					if (player.TermRecords != null)
+					{
+						XmlNode termsNode = doc.CreateElement("terms");
+						playerNode.AppendChild(termsNode);
+
+						foreach (TermRecord termRecord in player.TermRecords)
+						{
+							XmlNode termNode = doc.CreateElement("term");
+							termsNode.AppendChild(termNode);
+
+							doc.AppendNode(termNode, "type", termRecord.Type.ToString());
+							doc.AppendNode(termNode, "time", termRecord.Time.ToString());
+							doc.AppendNode(termNode, "value", termRecord.Value);
+							doc.AppendNode(termNode, "reason", termRecord.Reason);
+						}
+					}
 				}
 			}
 
