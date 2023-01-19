@@ -2122,8 +2122,33 @@ namespace Torn
 			BaseDestroys = events.Count(x => x.ServerPlayerId == ServerPlayerId && x.Event_Type == 31);
 			BaseDenies = events.FindAll(x => x.ServerPlayerId == ServerPlayerId && (x.Event_Type == 1401 || x.Event_Type == 1402)).Sum(x => x.ShotsDenied);
 			BaseDenied = events.FindAll(x => x.ServerPlayerId == ServerPlayerId && (x.Event_Type == 1404 || x.Event_Type == 1404)).Sum(x => x.ShotsDenied);
-			YellowCards = events.Count(x => x.ServerPlayerId == ServerPlayerId && x.Event_Type == 28);
-			RedCards = events.Count(x => x.ServerPlayerId == ServerPlayerId && x.Event_Type == 29);
+			PopulateTerms(events);
+		}
+
+		public void PopulateTerms(List<Event> events)
+        {
+			YellowCards = 0;
+			RedCards = 0;
+			TermRecords = null;
+
+			foreach (Event e in events)
+			{
+				if (e.ServerPlayerId == ServerPlayerId)
+				{
+					if (e.Event_Type == 28)
+					{
+						YellowCards++;
+						TermRecord termRecord = new TermRecord(TermType.Yellow, e.Time, e.Score);
+						AddTermRecord(termRecord);
+					}
+					if (e.Event_Type == 29)
+					{
+						RedCards++;
+						TermRecord termRecord = new TermRecord(TermType.Red, e.Time, e.Score);
+						AddTermRecord(termRecord);
+					}
+				}
+			}
 		}
 
 		public override string ToString()
