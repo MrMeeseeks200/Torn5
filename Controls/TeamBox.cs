@@ -172,7 +172,7 @@ namespace Torn.UI
 			menuIdentifyTeam.Enabled   = League != null;
 			menuIdentifyPlayer.Enabled = ListView.SelectedItems.Count == 1;
 			menuHandicapPlayer.Enabled = false;// ListView.SelectedItems.Count == 1;
-			menuAdjustPlayerScore.Enabled = ListView.SelectedItems.Count == 1;
+			menuAdjustPlayerScore.Enabled = false; // TODO REMOVE ONCE TERM MANAGEMENT TESTED ON OZONE :: ListView.SelectedItems.Count == 1
 			menuMergePlayer.Enabled    = ListView.SelectedItems.Count == 2;
 			changeAliasToolStripMenuItem.Enabled = League != null;
 			menuGradePlayer.Enabled = ListView.SelectedItems.Count == 1 && League != null && League.IsAutoHandicap && LeagueTeam != null;
@@ -453,7 +453,7 @@ namespace Torn.UI
         private void manageTermsToolStripMenuItem_Click(object sender, EventArgs e)
         {
 			ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
-			using (var form = new FormManageTerms { Player = player })
+			using (var form = new FormManageTerms { Player = player, League = League })
             {
 				var result = form.ShowDialog();
 				if(result == DialogResult.OK)

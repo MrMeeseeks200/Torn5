@@ -778,6 +778,14 @@ namespace Torn
 		public decimal ExtraAPenalty { get; set; }
 		public decimal ExtraGBonus { get; set; }
 
+		public decimal VerbalTermValue { get; set; }
+		public decimal YellowTermValue { get; set; }
+		public decimal RedTermValue { get; set; }
+
+		private readonly int DEFAULT_VERBAL_TERM = 0;
+		private readonly int DEFAULT_YELLOW_TERM = -1000;
+		private readonly int DEFAULT_RED_TERM = -2000;
+
 		private readonly List<Grade> DEFAULT_GRADES = new List<Grade>
 		{
 			new Grade("AAA", 6, true, false),
@@ -956,6 +964,9 @@ namespace Torn
 			MissingPlayerPenalty = 2;
 			ExtraAPenalty = 1;
 			ExtraGBonus = -1;
+			VerbalTermValue = DEFAULT_VERBAL_TERM;
+			YellowTermValue = DEFAULT_YELLOW_TERM;
+			RedTermValue = DEFAULT_RED_TERM;
 		}
 
 		public League(string fileName): this()
@@ -1263,6 +1274,9 @@ namespace Torn
 			MissingPlayerPenalty = root.GetDecimal("MissingPlayerPenalty");
 			ExtraAPenalty = root.GetDecimal("ExtraAPenalty");
 			ExtraGBonus = root.GetDecimal("ExtraGBonus");
+			VerbalTermValue = root.GetString("VerbalTermValue") == null ? DEFAULT_VERBAL_TERM : root.GetDecimal("VerbalTermValue");
+			YellowTermValue = root.GetString("YellowTermValue") == null ? DEFAULT_YELLOW_TERM : root.GetDecimal("YellowTermValue");
+			RedTermValue = root.GetString("RedTermValue") == null ? DEFAULT_RED_TERM : root.GetDecimal("RedTermValue");
 			IsAutoHandicap = root.GetInt("AutoHandicap") > 0;
 			hitsTieBreak = root.GetInt("HitsTieBreak") > 0;
 
@@ -1509,6 +1523,9 @@ namespace Torn
 			doc.AppendNode(bodyNode, "ExtraGBonus", ExtraGBonus.ToString());
 			doc.AppendNode(bodyNode, "HitsTieBreak", hitsTieBreak ? 1 : 0);
 			doc.AppendNode(bodyNode, "Key", Key);
+			doc.AppendNode(bodyNode, "VerbalTermValue", VerbalTermValue.ToString());
+			doc.AppendNode(bodyNode, "YellowTermValue", YellowTermValue.ToString());
+			doc.AppendNode(bodyNode, "RedTermValue", RedTermValue.ToString());
 
 			XmlNode gradesNode = doc.CreateElement("grades");
 			bodyNode.AppendChild(gradesNode);

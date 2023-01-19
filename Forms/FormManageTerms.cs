@@ -14,6 +14,7 @@ namespace Torn5.Forms
     public partial class FormManageTerms : Form
     {
         public ServerPlayer Player { get; set; }
+        public League League { get; set; }
         private int initialPenalties = 0;
         public FormManageTerms()
         {
@@ -57,7 +58,7 @@ namespace Torn5.Forms
 
         private void addButton_Click(object sender, EventArgs e)
         {
-            using (var form = new FormEditTerm())
+            using (var form = new FormEditTerm(League))
             {
                 var result = form.ShowDialog();
                 if(result == DialogResult.OK)
@@ -83,7 +84,7 @@ namespace Torn5.Forms
 
         private void editTerm()
         {
-            using (var form = new FormEditTerm((TermRecord)termList.SelectedItems[0].Tag))
+            using (var form = new FormEditTerm(League,(TermRecord)termList.SelectedItems[0].Tag))
             {
                 var result = form.ShowDialog();
                 if (result == DialogResult.OK)

@@ -14,20 +14,19 @@ namespace Torn5.Forms
     public partial class FormEditTerm : Form
     {
         public TermRecord Term { get; set; }
-        //TODO Move this to configure per league
-        private decimal yellowTerm = -1000;
-        private decimal redTerm = -2000;
-        private decimal verbalTerm = 0;
+        public League League { get; set; }
         private decimal otherTerm = 0;
 
-        public FormEditTerm()
+        public FormEditTerm(League league)
         {
             InitializeComponent();
+            League = league;
         }
 
-        public FormEditTerm(TermRecord term)
+        public FormEditTerm(League league, TermRecord term)
         {
             InitializeComponent();
+            League = league;
             Term = term;
         }
 
@@ -55,17 +54,17 @@ namespace Torn5.Forms
             if(typeSelector.Text == TermType.Yellow.ToString())
             {
                 Console.WriteLine(typeSelector.Tag);
-                penalty.Value = yellowTerm;
+                penalty.Value = League.YellowTermValue;
                 penalty.Enabled = false;
             }
             if (typeSelector.Text == TermType.Red.ToString())
             {
-                penalty.Value = redTerm;
+                penalty.Value = League.RedTermValue;
                 penalty.Enabled = false;
             }
             if (typeSelector.Text == TermType.Verbal.ToString())
             {
-                penalty.Value = verbalTerm;
+                penalty.Value = League.VerbalTermValue;
                 penalty.Enabled = false;
             }
             if (typeSelector.Text == TermType.Other.ToString())
