@@ -400,17 +400,30 @@ namespace Torn
 	public class TermRecord
     {
 		public TermType Type { get; set; }
-		public DateTime Time { get; set; }
+		public DateTime? Time { get; set; }
 		public int Value { get; set; }
 		public string Reason { get; set; }
 
-		public TermRecord(TermType type, DateTime time, int value, string reason = "")
+		public TermRecord(TermType type, DateTime? time, int value, string reason = "")
         {
 			Type = type;
 			Time = time;
 			Value = value;
 			Reason = reason;
         }
+
+		public TermRecord(TermType type, int value, string reason = "")
+		{
+			Type = type;
+			Value = value;
+			Reason = reason;
+			Time = null;
+		}
+
+		public override string ToString()
+		{
+			return "Term Type: " + Type + " Time: " + (Time == null  ? "N/A" : Time.ToString()) + " Value: " + Value + " Reason: " + Reason;
+		}
 	}
 
 	/// <summary>Stores data about a player in a single game. (This is different from LeaguePlayer.)</summary>
@@ -442,7 +455,6 @@ namespace Torn
 				TermRecords = new List<TermRecord>();
             }
 			TermRecords.Add(termRecord);
-			Console.WriteLine("Terms " + TermRecords.Count());
         }
 
 		/// <summary>Used for accumulating data to be used for a team total, a game average, etc.</summary>

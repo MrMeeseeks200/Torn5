@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
+using Torn5.Forms;
 
 namespace Torn.UI
 {
@@ -420,7 +421,6 @@ namespace Torn.UI
 			double penalty = -1000;
 			InputDialog.GetDouble("Adjustment", "Set player score adjustment", ref penalty);
 			var player1 = (ServerPlayer)ListView.SelectedItems[0].Tag;
-
 			player1.Score = player1.Score + penalty;
 
 			ListView.SelectedItems[0].SubItems[2].Text = player1.Score.ToString();
@@ -449,6 +449,12 @@ namespace Torn.UI
 				MessageBox.Show("Could not find player in league");
             }
 		}
+
+        private void manageTermsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+			ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
+			new FormManageTerms { Player = player }.ShowDialog();
+        }
     }
 
     class SortByScore : IComparer
