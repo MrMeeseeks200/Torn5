@@ -453,8 +453,19 @@ namespace Torn.UI
         private void manageTermsToolStripMenuItem_Click(object sender, EventArgs e)
         {
 			ServerPlayer player = (ServerPlayer)ListView.SelectedItems[0].Tag;
-			new FormManageTerms { Player = player }.ShowDialog();
-        }
+			using (var form = new FormManageTerms { Player = player })
+            {
+				var result = form.ShowDialog();
+				if(result == DialogResult.OK)
+                {
+					ListView.SelectedItems[0].Tag = form.Player;
+					ListView.SelectedItems[0].SubItems[2].Text = form.Player.Score.ToString();
+					ListView.SelectedItems[0].SubItems[1].Text = (form.Player.RedCards > 0 ? (form.Player.RedCards + "R ") : "") + (form.Player.YellowCards > 0 ? (form.Player.YellowCards + "Y ") : "") + form.Player.Alias;
+					Recalculate(false);
+				}
+            }
+
+		}
     }
 
     class SortByScore : IComparer

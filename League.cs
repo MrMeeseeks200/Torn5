@@ -1430,7 +1430,11 @@ namespace Torn
 						{
 							TermType termType;
 							TermType.TryParse(xterm.GetString("type"), out termType);
-							TermRecord termRecord = new TermRecord(termType, DateTime.Parse(xterm.GetString("time")), xterm.GetInt("value"), xterm.GetString("reason"));
+							string reason = xterm.SelectSingleNode("reason") != null ? xterm.GetString("reason") : "";
+							string time = xterm.SelectSingleNode("time") != null ? xterm.GetString("time") : "";
+							TermRecord termRecord = time == "" ?
+								termRecord = new TermRecord(termType, xterm.GetInt("value"), reason) :
+								termRecord = new TermRecord(termType, DateTime.Parse(time), xterm.GetInt("value"), reason);
 
 							gamePlayer.AddTermRecord(termRecord);
 						}
