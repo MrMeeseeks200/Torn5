@@ -534,6 +534,10 @@ namespace Torn
 		{
 			return "GamePlayer " + PlayerId + " QRCode: " + QRCode;
 		}
+		public string GetFormattedAlias(string alias)
+		{
+			return (IsEliminated ? "💀  " : "") + (RedCards > 0 ? (RedCards + "R ") : "") + (YellowCards > 0 ? (YellowCards + "Y ") : "") + alias;
+		}
 	}
 
 	public class Game: IComparable
@@ -2206,6 +2210,11 @@ namespace Torn
 		public override string ToString()
 		{
 			return "ServerPlayer " + Alias + "; " + PlayerId;
+		}
+
+		public string GetFormattedAlias()
+		{
+			return (IsEliminated ? "💀  " : "") + (RedCards > 0 ? (RedCards + "R ") : "") + (YellowCards > 0 ? (YellowCards + "Y ") : "") + Alias;
 		}
 	}
 }

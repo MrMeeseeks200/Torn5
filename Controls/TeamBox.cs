@@ -461,7 +461,7 @@ namespace Torn.UI
                 {
 					ListView.SelectedItems[0].Tag = form.Player;
 					ListView.SelectedItems[0].SubItems[2].Text = League.ZeroElimed && form.Player.IsEliminated && form.Player.Score > 0 ? "0" : form.Player.Score.ToString();
-					ListView.SelectedItems[0].SubItems[1].Text = (form.Player.IsEliminated ? "💀  " : "") + (form.Player.RedCards > 0 ? (form.Player.RedCards + "R ") : "") + (form.Player.YellowCards > 0 ? (form.Player.YellowCards + "Y ") : "") + form.Player.Alias;
+					ListView.SelectedItems[0].SubItems[1].Text = form.Player.GetFormattedAlias();
 					Recalculate(false);
 				}
             }
@@ -474,7 +474,7 @@ namespace Torn.UI
 			player.IsEliminated = true;
 			player.Score = League.ZeroElimed && player.Score > 0 ? 0 : player.Score;
 			ListView.SelectedItems[0].SubItems[2].Text = player.Score.ToString();
-			ListView.SelectedItems[0].SubItems[1].Text = (player.IsEliminated ? "💀  " : "") + (player.RedCards > 0 ? (player.RedCards + "R ") : "") + (player.YellowCards > 0 ? (player.YellowCards + "Y ") : "") + player.Alias;
+			ListView.SelectedItems[0].SubItems[1].Text = player.GetFormattedAlias();
 			Recalculate(false);
 		}
     }

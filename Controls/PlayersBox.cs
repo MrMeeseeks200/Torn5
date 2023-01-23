@@ -54,7 +54,7 @@ namespace Torn.UI
 					int yCard = player.YellowCards;
 					int rCard = player.RedCards;
 
-					string alias = (player.IsEliminated ? "💀  " : "") + (rCard > 0 ? (rCard + "R ") : "") + (yCard > 0 ? (yCard + "Y ") : "") + (isRichoCard ? "**** " + player.Alias + " ****" : player.Alias);
+					string alias = isRichoCard ? "**** " + player.GetFormattedAlias() + " ****" : player.GetFormattedAlias();
 
 					bool isNewPlayer = league != null && leaguePlayer == null;
 
