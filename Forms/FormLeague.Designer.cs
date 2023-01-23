@@ -100,6 +100,7 @@ namespace Torn.UI
             this.redTermValue = new System.Windows.Forms.NumericUpDown();
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
+            this.zeroElimed = new System.Windows.Forms.CheckBox();
             this.contextMenuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -324,6 +325,7 @@ namespace Torn.UI
             // 
             // leaguePage
             // 
+            this.leaguePage.Controls.Add(this.zeroElimed);
             this.leaguePage.Controls.Add(this.hitsTieBreak);
             this.leaguePage.Controls.Add(this.numericHighScore);
             this.leaguePage.Controls.Add(this.labelHighScore);
@@ -938,6 +940,17 @@ namespace Torn.UI
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
+            // zeroElimed
+            // 
+            this.zeroElimed.AutoSize = true;
+            this.zeroElimed.Location = new System.Drawing.Point(130, 24);
+            this.zeroElimed.Name = "zeroElimed";
+            this.zeroElimed.Size = new System.Drawing.Size(158, 17);
+            this.zeroElimed.TabIndex = 6;
+            this.zeroElimed.Text = "Zero Score for elimed player";
+            this.zeroElimed.UseVisualStyleBackColor = true;
+            this.zeroElimed.CheckedChanged += new System.EventHandler(this.zeroElimed_CheckedChanged);
+            // 
             // FormLeague
             // 
             this.AcceptButton = this.buttonOK;
@@ -1056,5 +1069,6 @@ namespace Torn.UI
         private System.Windows.Forms.NumericUpDown yellowTermValue;
         private System.Windows.Forms.NumericUpDown verbalTermValue;
         private System.Windows.Forms.NumericUpDown redTermValue;
+        private System.Windows.Forms.CheckBox zeroElimed;
     }
 }

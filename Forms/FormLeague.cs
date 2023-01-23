@@ -55,6 +55,7 @@ namespace Torn.UI
 			victoryPoints.Checked = League.VictoryPoints.Any();
 			hitsTieBreak.Checked = League.hitsTieBreak;
 			hitsTieBreak.Enabled = victoryPoints.Checked;
+			zeroElimed.Checked = League.zeroElimed;
 
 			for (int i = 0; i < League.VictoryPoints.Count; i++)
 				SetVictoryBox(i, League.VictoryPoints[i]);
@@ -568,5 +569,10 @@ namespace Torn.UI
         {
 			League.RedTermValue = redTermValue.Value;
         }
-    }
+
+        private void zeroElimed_CheckedChanged(object sender, EventArgs e)
+        {
+			League.zeroElimed = zeroElimed.Checked;
+		}
+	}
 }
