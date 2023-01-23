@@ -81,7 +81,7 @@ namespace Torn.UI
 
 					item.ToolTipText = tooltip;
 
-					var score = player.Score > 0 && player.IsEliminated && league.zeroElimed ? "0" : player.Score.ToString(CultureInfo.CurrentCulture);
+					var score = player.Score > 0 && player.IsEliminated && league.ZeroElimed ? "0" : player.Score.ToString(CultureInfo.CurrentCulture);
 
 					item.SubItems.Add(alias);
 					item.SubItems.Add(score);
