@@ -55,6 +55,8 @@ namespace Torn.UI
 			victoryPoints.Checked = League.VictoryPoints.Any();
 			hitsTieBreak.Checked = League.hitsTieBreak;
 			hitsTieBreak.Enabled = victoryPoints.Checked;
+			zeroVps.Checked = League.zeroVps;
+			zeroVps.Enabled = victoryPoints.Checked;
 			zeroElimed.Checked = League.zeroElimed;
 
 			for (int i = 0; i < League.VictoryPoints.Count; i++)
@@ -318,6 +320,7 @@ namespace Torn.UI
 				SetVictoryBox(0);
 			}
 			hitsTieBreak.Enabled = victoryPoints.Checked;
+			zeroVps.Enabled = victoryPoints.Checked;
 		}
 
 		/// <summary>Ensure that there is an i'th victory points box, and set its value.</summary>
@@ -573,6 +576,11 @@ namespace Torn.UI
         private void zeroElimed_CheckedChanged(object sender, EventArgs e)
         {
 			League.zeroElimed = zeroElimed.Checked;
+		}
+
+        private void zeroVps_CheckedChanged(object sender, EventArgs e)
+        {
+			League.zeroVps = zeroVps.Checked;
 		}
 	}
 }

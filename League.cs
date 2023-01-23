@@ -767,7 +767,8 @@ namespace Torn
 
 		public bool hitsTieBreak { get; set; }
 		public bool zeroElimed { get; set; }
-		
+		public bool zeroVps { get; set; }
+
 		public double VictoryPointsHighScore { get; set; }
 		public double VictoryPointsProportional { get; set; }
 
@@ -1284,6 +1285,7 @@ namespace Torn
 			IsAutoHandicap = root.GetInt("AutoHandicap") > 0;
 			hitsTieBreak = root.GetInt("HitsTieBreak") > 0;
 			zeroElimed = root.GetInt("ZeroElimed") > 0;
+			zeroVps = root.GetInt("ZeroVps") > 0;
 
 			ExpectedTeamSize = teamSize == 0 ? 5 : teamSize;
 
@@ -1533,6 +1535,7 @@ namespace Torn
 			doc.AppendNode(bodyNode, "YellowTermValue", YellowTermValue.ToString());
 			doc.AppendNode(bodyNode, "RedTermValue", RedTermValue.ToString());
 			doc.AppendNode(bodyNode, "ZeroElimed", zeroElimed ? 1 : 0);
+			doc.AppendNode(bodyNode, "ZeroVps", zeroVps ? 1 : 0);
 
 
 			XmlNode gradesNode = doc.CreateElement("grades");

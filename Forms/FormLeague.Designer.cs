@@ -50,6 +50,7 @@ namespace Torn.UI
             this.panelRight = new System.Windows.Forms.Panel();
             this.temTab = new System.Windows.Forms.TabControl();
             this.leaguePage = new System.Windows.Forms.TabPage();
+            this.zeroElimed = new System.Windows.Forms.CheckBox();
             this.hitsTieBreak = new System.Windows.Forms.CheckBox();
             this.numericHighScore = new System.Windows.Forms.NumericUpDown();
             this.labelHighScore = new System.Windows.Forms.Label();
@@ -100,7 +101,7 @@ namespace Torn.UI
             this.redTermValue = new System.Windows.Forms.NumericUpDown();
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
-            this.zeroElimed = new System.Windows.Forms.CheckBox();
+            this.zeroVps = new System.Windows.Forms.CheckBox();
             this.contextMenuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -325,6 +326,7 @@ namespace Torn.UI
             // 
             // leaguePage
             // 
+            this.leaguePage.Controls.Add(this.zeroVps);
             this.leaguePage.Controls.Add(this.zeroElimed);
             this.leaguePage.Controls.Add(this.hitsTieBreak);
             this.leaguePage.Controls.Add(this.numericHighScore);
@@ -340,6 +342,17 @@ namespace Torn.UI
             this.leaguePage.TabIndex = 0;
             this.leaguePage.Text = "League";
             this.leaguePage.UseVisualStyleBackColor = true;
+            // 
+            // zeroElimed
+            // 
+            this.zeroElimed.AutoSize = true;
+            this.zeroElimed.Location = new System.Drawing.Point(130, 8);
+            this.zeroElimed.Name = "zeroElimed";
+            this.zeroElimed.Size = new System.Drawing.Size(158, 17);
+            this.zeroElimed.TabIndex = 6;
+            this.zeroElimed.Text = "Zero Score for elimed player";
+            this.zeroElimed.UseVisualStyleBackColor = true;
+            this.zeroElimed.CheckedChanged += new System.EventHandler(this.zeroElimed_CheckedChanged);
             // 
             // hitsTieBreak
             // 
@@ -940,16 +953,17 @@ namespace Torn.UI
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             // 
-            // zeroElimed
+            // zeroVps
             // 
-            this.zeroElimed.AutoSize = true;
-            this.zeroElimed.Location = new System.Drawing.Point(130, 24);
-            this.zeroElimed.Name = "zeroElimed";
-            this.zeroElimed.Size = new System.Drawing.Size(158, 17);
-            this.zeroElimed.TabIndex = 6;
-            this.zeroElimed.Text = "Zero Score for elimed player";
-            this.zeroElimed.UseVisualStyleBackColor = true;
-            this.zeroElimed.CheckedChanged += new System.EventHandler(this.zeroElimed_CheckedChanged);
+            this.zeroVps.AutoSize = true;
+            this.zeroVps.Enabled = false;
+            this.zeroVps.Location = new System.Drawing.Point(130, 29);
+            this.zeroVps.Name = "zeroVps";
+            this.zeroVps.Size = new System.Drawing.Size(144, 17);
+            this.zeroVps.TabIndex = 7;
+            this.zeroVps.Text = "Zero VPs for elimed team";
+            this.zeroVps.UseVisualStyleBackColor = true;
+            this.zeroVps.CheckedChanged += new System.EventHandler(this.zeroVps_CheckedChanged);
             // 
             // FormLeague
             // 
@@ -1070,5 +1084,6 @@ namespace Torn.UI
         private System.Windows.Forms.NumericUpDown verbalTermValue;
         private System.Windows.Forms.NumericUpDown redTermValue;
         private System.Windows.Forms.CheckBox zeroElimed;
+        private System.Windows.Forms.CheckBox zeroVps;
     }
 }
