@@ -404,6 +404,7 @@ namespace Torn
 		public int Value { get; set; }
 		public string Reason { get; set; }
 
+		[JsonConstructor]
 		public TermRecord(TermType type, DateTime? time, int value, string reason = "")
         {
 			Type = type;
