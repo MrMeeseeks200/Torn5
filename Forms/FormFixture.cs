@@ -493,17 +493,7 @@ namespace Torn.UI
 
 			List<List<int>> existingPlaysPadded = PadPlaysToTeamNumber((int)numberOfTeams, existingPlays);
 
-			LogGrid(existingGrid);
-			LogGrid(existingPlays);
-
 			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
-
-			LogGrid(grid);
-
-			List<List<int>> plays = CalcPlays(grid, true, new List<List<int>>());
-			LogGrid(plays);
-
-
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
 
