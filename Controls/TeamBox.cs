@@ -41,7 +41,23 @@ namespace Torn.UI
 					value.Handicap = handicap;
 				leagueTeam = value;
 				GameTeam.TeamId = leagueTeam == null ? (int?)null : leagueTeam.TeamId;
-				ListView.Columns[1].Text = leagueTeam == null ? "Players" : leagueTeam.Name;
+				var yellows = 0;
+				var reds = 0;
+				if (GameTeam?.TermRecords != null)
+				{
+					foreach (TermRecord term in GameTeam.TermRecords)
+					{
+						if (term.Type == TermType.Yellow)
+						{
+							yellows++;
+						}
+						if (term.Type == TermType.Red)
+						{
+							reds++;
+						}
+					}
+				}
+				ListView.Columns[1].Text = leagueTeam == null ? "Players" : (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name;
 			}
 		}
 
@@ -492,6 +508,23 @@ namespace Torn.UI
 					Recalculate(false);
 				}
 			}
+			var yellows = 0;
+			var reds = 0;
+			if (GameTeam?.TermRecords != null)
+			{
+				foreach (TermRecord term in GameTeam.TermRecords)
+				{
+					if (term.Type == TermType.Yellow)
+					{
+						yellows++;
+					}
+					if (term.Type == TermType.Red)
+					{
+						reds++;
+					}
+				}
+			}
+			ListView.Columns[1].Text = (yellows > 0 ? yellows + "Y " : "") + (reds > 0 ? reds + "R " : "") + leagueTeam.Name;
 		}
     }
 
