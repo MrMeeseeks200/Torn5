@@ -477,6 +477,18 @@ namespace Torn.UI
 			ListView.SelectedItems[0].SubItems[1].Text = player.GetFormattedAlias();
 			Recalculate(false);
 		}
+
+        private void manageTeamTerms_Click(object sender, EventArgs e)
+        {
+			using (var form = new FormManageTerms { Team = GameTeam, League = League })
+			{
+				var result = form.ShowDialog();
+				if (result == DialogResult.OK)
+				{
+					Recalculate(false);
+				}
+			}
+		}
     }
 
     class SortByScore : IComparer
