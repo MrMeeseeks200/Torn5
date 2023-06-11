@@ -5,6 +5,10 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using Zoom;
+using System.IO;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace Torn.Report
 {
@@ -2229,6 +2233,55 @@ namespace Torn.Report
 
 			return report;
 		}
+
+		public static ZoomReport PackHitsReport(League league, bool includeSecret, ReportTemplate rt, string exportFolder)
+        {
+			ZoomReport report = new ZoomReport(ReportTitle("Pack Hits", league.Title, rt),
+											   "Pack, Average",
+											   "left,integer");
+
+			if (exportFolder == "" || exportFolder == null)
+            {
+				Console.WriteLine("Cannot find json exports");
+				return report;
+            }
+
+			string jsonPath = Path.Combine(exportFolder, "json");
+
+			var files = from file in Directory.EnumerateFiles(jsonPath) select file;
+
+			foreach (var file in files)
+            {
+				string jsonLines = File.ReadAllText(file);
+				JArray loggedEvents = new JArray();
+
+				try
+				{
+					loggedEvents = JsonConvert.DeserializeObject<JObject>(jsonLines).Value<JArray>("Events");
+				}
+				catch (Newtonsoft.Json.JsonException)
+				{
+					Console.WriteLine("JSON file at path ({0}) does not contain JSON data, event data ignored", file);
+				}
+
+				foreach (JObject evnt in loggedEvents)
+				{
+					var eventNum = Int32.Parse(evnt["Event_Type"].ToString());
+					var serverPlayerId = Int32.Parse(evnt["ServerPlayerId"].ToString());
+					Console.WriteLine(eventNum + " " + serverPlayerId);
+				}
+
+				Console.WriteLine(file);
+				ZRow row = report.AddRow(new ZRow());
+
+				row.AddCell(new ZCell("Test Name"));
+				row.AddCell(new ZCell(1234));
+			}
+
+			
+
+			return report;
+        }
 
 		/// <summary>List each player and their number of games, average score, tag ratio, etc.</summary>
 		public static ZoomReport SoloLadder(League league, bool includeSecret, ReportTemplate rt)
