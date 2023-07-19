@@ -6,7 +6,7 @@ on:
 name: Deploy to FTP Server
 
 env:
-  ftp_password: ${{ secrets.FTP_PASSWORD }}
+  ftp_username: ${{ secrets.FTP_USERNAME }}
 
 jobs:
   web-deploy:
@@ -18,8 +18,9 @@ jobs:
 
       - name: Upload ftp
         run: |
-          sudo apt-get install -y lftp
-          lftp horsman.synology.me -u torn,$ftp_password -e "set ssl:verify-certificate false; ls;"
+          echo $ftp_username
+          # sudo apt-get install -y lftp
+          # lftp horsman.synology.me -u torn,$ftp_password -e "set ssl:verify-certificate false; ls;"
         # uses: sebastianpopp/ftp-action@releases/v2
         # with:
         #   host: ${{ secrets.FTP_URL }}
