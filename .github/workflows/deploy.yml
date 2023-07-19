@@ -11,13 +11,11 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v3
 
-      - name: Sync files
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Upload ftp
+        uses: sebastianpopp/ftp-action@releases/v2
         with:
-          server: horsman.synology.me
-          username: torn
+          host: ${{ secrets.FTP_URL }}
+          user: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          local-dir: ./test/
-          server-dir: ./Torn5/
-          protocol: ftps
+          localDir: "test"
+          remoteDir: "Torn5"
