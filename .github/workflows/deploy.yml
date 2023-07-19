@@ -18,7 +18,7 @@ jobs:
 
       - name: Upload ftp
         run: |
-          echo $ftp_username
+          echo ${ftp_username}
           # sudo apt-get install -y lftp
           # lftp horsman.synology.me -u torn,$ftp_password -e "set ssl:verify-certificate false; ls;"
         # uses: sebastianpopp/ftp-action@releases/v2
