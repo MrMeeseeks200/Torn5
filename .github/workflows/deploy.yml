@@ -2,7 +2,12 @@ on:
   pull_request:
     branches:
       - master
+
 name: Deploy to FTP Server
+
+env:
+  ftp_password: ${{ secrets.FTP_PASSWORD }}
+
 jobs:
   web-deploy:
     name: Deploy
@@ -12,10 +17,14 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Upload ftp
-        uses: sebastianpopp/ftp-action@releases/v2
-        with:
-          host: ${{ secrets.FTP_URL }}
-          user: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          localDir: "test"
-          remoteDir: "Torn5"
+        run: |
+          sudo apt-get install -y lftp
+          lftp horsman.synology.me -u torn,$ftp_password -e "set ssl:verify-certificate false;"
+          ls
+        # uses: sebastianpopp/ftp-action@releases/v2
+        # with:
+        #   host: ${{ secrets.FTP_URL }}
+        #   user: ${{ secrets.FTP_USERNAME }}
+        #   password: ${{ secrets.FTP_PASSWORD }}
+        #   localDir: "test"
+        #   remoteDir: "Torn5"
