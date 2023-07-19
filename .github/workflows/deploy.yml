@@ -20,4 +20,4 @@ jobs:
           port: 21
           local-dir: ./test/
           server-dir: ./Torn5/
-          protocol: ftps
+          protocol: ftp
