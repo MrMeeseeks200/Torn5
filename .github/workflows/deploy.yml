@@ -16,8 +16,8 @@ jobs:
         with:
           server: horsman.synology.me
           username: torn
-          password: ${{ SECRETS.FTP_PASSWORD }}
+          password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           local-dir: ./test/
           server-dir: ./Torn5/
-          protocol: ftp
+          protocol: ftps
