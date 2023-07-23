@@ -5,9 +5,7 @@ if [ -z "$1" ] || [ "$1" != "major" ] && [ "$1" != "minor" ] && [ "$1" != "patch
 fi
 
 
-currentVersion=$(<version)  
-
-# echo 1.0.0 > version
+currentVersion=$(<version.txt)  
 
 arrVersion=(${currentVersion//./ })
 
@@ -36,7 +34,7 @@ fi
 
 newVersion="$major.$minor.$patch"
 
-echo $newVersion > version
+echo $newVersion > version.txt
 
 
 echo $currentVersion \> $newVersion

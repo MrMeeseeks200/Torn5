@@ -1,12 +1,45 @@
 
 source .env
-# version=$(<version)
-deployedVersion=$(curl ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current/version --ssl)
+version=$(<version.txt)
+deployedVersion=$(curl ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current/version.txt --ssl)
 mkdir temp
 
-if [ "$version" == "$deployedVersion" ]
+arrVersion=(${version//./ })
+
+patch=${arrVersion[2]}
+minor=${arrVersion[1]}
+major=${arrVersion[0]}
+
+arrDeployedVersion=(${deployedVersion//./ })
+
+deployedPatch=${arrDeployedVersion[2]}
+deployedMinor=${arrDeployedVersion[1]}
+deployedMajor=${arrDeployedVersion[0]}
+
+deployable=false
+
+if [ "$major" -gt "$deployedMajor" ]
+  then
+    deployable=true
+fi
+
+if [ "$major" -eq "$deployedMajor" ] && [ "$minor" -gt "$deployedMinor" ]
+  then
+    deployable=true
+fi
+
+if [ "$major" -eq "$deployedMajor" ] && [ "$minor" -eq "$deployedMinor" ] && [ "$patch" -gt "$deployedPatch" ]
+  then
+    deployable=true
+fi
+
+echo $deployable
+
+if [ $deployable == false ]
   then
     echo "No changes to deploy"
+    echo "Deployed version: $deployedVersion"
+    echo "Local version: $version"
     echo "Bump version and try again"
     exit 1
 fi
@@ -32,7 +65,7 @@ curl -T temp/Torn5.zip ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Arch
 curl -T Releases/$version/Torn5.zip ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current/Torn5.zip --ssl
 
 # update version file
-curl -T version ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current/version --ssl
+curl -T version.txt ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current/version.txt --ssl
 
 rm -rf temp
 
