@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 if [ -z "$1" ] || [ "$1" != "major" ] && [ "$1" != "minor" ] && [ "$1" != "patch" ]
   then
     echo "Format should match: ./scripts/version.sh <major | minor | patch>"

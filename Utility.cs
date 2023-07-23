@@ -240,23 +240,29 @@ namespace Torn
 		public static string GetDeployedVersion()
 		{
             string deployedVersion = "";
+			try
+			{
 
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create("ftp://horsman.synology.me/Torn5/Current/version.txt");
-            request.Method = WebRequestMethods.Ftp.DownloadFile;
-            request.EnableSsl = true;
+				FtpWebRequest request = (FtpWebRequest)WebRequest.Create("ftp://horsman.synology.me/Torn5/Current/version.txt");
+				request.Method = WebRequestMethods.Ftp.DownloadFile;
+				request.EnableSsl = true;
 
-            using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-            {
-                using (var stream = response.GetResponseStream())
-                {
-                    byte[] buffer = new byte[0x10000];
-                    int len;
-                    while ((len = stream.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        deployedVersion += Encoding.ASCII.GetString(buffer, 0, len);
-                    }
-                }
-            }
+				using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+				{
+					using (var stream = response.GetResponseStream())
+					{
+						byte[] buffer = new byte[0x10000];
+						int len;
+						while ((len = stream.Read(buffer, 0, buffer.Length)) > 0)
+						{
+							deployedVersion += Encoding.ASCII.GetString(buffer, 0, len);
+						}
+					}
+				}
+			} catch
+			{
+				Console.WriteLine("Cannot fetch deployed version");
+			}
 
 			return deployedVersion;
         }
@@ -264,6 +270,10 @@ namespace Torn
 		public static bool IsNewerVersionAvailable()
 		{
 			string deployedVersion = GetDeployedVersion();
+			if (deployedVersion == "")
+			{
+				return false;
+			}
 			string currentVersion = Resources.version;
 
 			string[] deployedArr = deployedVersion.Split('.');

@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 source .env
 version=$(<version.txt)
 deployedVersion=$(curl ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current/version.txt --ssl)
@@ -69,6 +69,6 @@ curl -T version.txt ftp://$FTP_USERNAME:$FTP_PASSWORD@$FTP_HOST:21/Torn5/Current
 
 rm -rf temp
 
-echo deployed Torn5 v$deployedVersion
+echo deployed Torn5 v$version
 
 
