@@ -2628,8 +2628,85 @@ namespace Torn.Report
 			return report;
 		}
 
-		/// <summary>List each team and their number of games, average score, victory points, etc.</summary>
-		public static ZoomReport TeamLadder(League league, bool includeSecret, ReportTemplate rt)
+        public static ZoomReport TermReport(League league, bool includeSecret, ReportTemplate rt)
+        {
+            ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
+
+            ZoomReport report = new ZoomReport(ReportTitle("Term Report", league.Title, rt),
+                                               "Rank,Player,Team,Total,Red,Yellow,Games",
+                                               "center,left,left,integer,integer,integer,integer",
+                                               ",,,Penalties,Penalties,Penalties,")
+            {
+                MaxChartByColumn = true,
+                MultiColumnOK = true
+            };
+            int atLeastN = rt.SettingInt("AtLeastN") ?? 1;
+
+            var playerTeams = league.BuildPlayerTeamList();
+            foreach (var pt in playerTeams)
+            {
+                var player = pt.Key;
+                var games = Games(league, includeSecret, rt).Where(x => x.Players().Exists(y => y.PlayerId == player.Id));
+
+                if (games.Count() >= atLeastN && player.Name != null)
+                {
+                    ZRow row = report.AddRow(new ZRow());
+                    row.Add(new ZCell(0, ChartType.None, "N0"));  // Temporary rank
+                    row.AddCell(new ZCell(player.Name)).Hyper = PlayerHyper(pt.Value[0], player);  // Player alias
+
+                    if (pt.Value.Count() == 1)
+                        row.Add(TeamCell(pt.Value.First()));
+                    else
+                        row.Add(new ZCell(string.Join(", ", pt.Value.Select(x => x.Name))));  // Team(s) played for
+
+                    var played = League.Played(games, player, includeSecret);
+
+                    row.Add(TotalDataCell(played.Select(x => (double)x.RedCards + (double)x.YellowCards).ToList(), rt.Drops, ChartType.Bar, "N1"));
+                    row.Add(TotalDataCell(played.Select(x => (double)x.RedCards).ToList(), rt.Drops, ChartType.Bar, "N1"));
+                    row.Add(TotalDataCell(played.Select(x => (double)x.YellowCards).ToList(), rt.Drops, ChartType.Bar, "N1"));
+
+                    row.Add(new ZCell(played.Count(), ChartType.None, "N0"));  // Games
+
+                }
+            }
+
+            report.Rows.Sort(delegate (ZRow x, ZRow y)
+            {
+                int index = 0;
+                index = report.Columns.FindIndex((c) => c.ToString() == "Total");
+
+                double? result = y[index].Number - x[index].Number;
+				if(result == 0)
+				{
+                    index = report.Columns.FindIndex((c) => c.ToString() == "Red");
+					result = y[index].Number - x[index].Number;
+                }
+                if (result == 0)
+                {
+                    index = report.Columns.FindIndex((c) => c.ToString() == "Yellow");
+                    result = y[index].Number - x[index].Number;
+                }
+
+                return Math.Sign((double)result);
+            }
+                            );
+
+            for (int i = 0; i < report.Rows.Count; i++)
+                report.Rows[i][0].Number = i + 1;
+
+            int? topN = rt.SettingInt("ShowTopN");
+
+            if (topN != null)
+                for (int i = report.Rows.Count - 1; i >= topN; i--)
+                    report.Rows.RemoveAt(i);
+
+			report.RemoveZeroColumns();
+
+            return report;
+        }
+
+        /// <summary>List each team and their number of games, average score, victory points, etc.</summary>
+        public static ZoomReport TeamLadder(League league, bool includeSecret, ReportTemplate rt)
 		{
 			bool isDecimal = rt.FindSetting("isDecimal") >= 0;
 			bool showZeroed = rt.FindSetting("showZeroed") >= 0;
