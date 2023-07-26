@@ -245,11 +245,20 @@ namespace Zoom
 		{
 		}
 
-		public ZCell(string text = "", Color color = default, ZCell barCell = null)
+        public ZCell(string text, string title)
+        {
+            Text = text;
+            Color = default;
+            ChartCell = null;
+            Title = title;
+        }
+
+        public ZCell(string text = "", Color color = default, ZCell barCell = null, string title = "")
 		{
 			Text = text;
 			Color = color;
 			ChartCell = barCell;
+			Title = title;
 		}
 
 		public ZCell(double? number, ChartType chartType = ChartType.None, string numberFormat = "", Color color = default, string title = "")
