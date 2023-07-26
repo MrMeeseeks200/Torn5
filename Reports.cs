@@ -2633,9 +2633,9 @@ namespace Torn.Report
             ChartType chartType = ChartTypeExtensions.ToChartType(rt.Setting("ChartType"));
 
             ZoomReport report = new ZoomReport(ReportTitle("Term Report", league.Title, rt),
-                                               "Rank,Player,Team,Total,Red,Yellow,Games",
-                                               "center,left,left,integer,integer,integer,integer",
-                                               ",,,Penalties,Penalties,Penalties,")
+                                               "Rank,Player,Team,Total,Red,Yellow,Verbals,Other,Games",
+                                               "center,left,left,integer,integer,integer,integer,integer,integer",
+                                               ",,,Penalties,Penalties,Penalties,Penalties,Penalties,")
             {
                 MaxChartByColumn = true,
                 MultiColumnOK = true
@@ -2661,11 +2661,13 @@ namespace Torn.Report
 
                     var played = League.Played(games, player, includeSecret);
 
-                    row.Add(TotalDataCell(played.Select(x => (double)x.RedCards + (double)x.YellowCards).ToList(), rt.Drops, ChartType.Bar, "N1"));
-                    row.Add(TotalDataCell(played.Select(x => (double)x.RedCards).ToList(), rt.Drops, ChartType.Bar, "N1"));
-                    row.Add(TotalDataCell(played.Select(x => (double)x.YellowCards).ToList(), rt.Drops, ChartType.Bar, "N1"));
+                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Totals"));
+                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Red)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Red"));
+                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Yellow)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Yellow"));
+                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Verbal)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Verbal"));
+                    row.Add(TotalDataCell(played.Select(x => (double)(x.TermRecords?.FindAll(r => r.Type == TermType.Other)?.Count() ?? 0)).ToList(), rt.Drops, ChartType.Bar, "N0", "Other"));
 
-                    row.Add(new ZCell(played.Count(), ChartType.None, "N0"));  // Games
+                    row.Add(new ZCell(played.Count(), ChartType.None, "N0", default, "Games"));  // Games
 
                 }
             }
@@ -2688,8 +2690,15 @@ namespace Torn.Report
                 }
 
                 return Math.Sign((double)result);
-            }
-                            );
+            });
+
+			report.Rows.RemoveAll(r =>
+			{
+                int index = 0;
+                index = report.Columns.FindIndex((c) => c.ToString() == "Total");
+				double value = (double)r[index].Number;
+				return value == 0;
+            });
 
             for (int i = 0; i < report.Rows.Count; i++)
                 report.Rows[i][0].Number = i + 1;
@@ -3500,9 +3509,9 @@ Tiny numbers at the bottom of the bottom row show the minimum, bin size, and max
 			return dataCell;
 		}
 
-		static ZCell TotalDataCell(List<double> dataList, Drops drops, ChartType chartType, string numberFormat)
+		static ZCell TotalDataCell(List<double> dataList, Drops drops, ChartType chartType, string numberFormat, string title = "")
 		{
-			var dataCell = new ZCell(0, chartType, numberFormat);
+			var dataCell = new ZCell(0, chartType, numberFormat, default, title);
 			dataCell.Data.AddRange(dataList);
 			if (drops != null)
 				DropScores(dataList, drops);
