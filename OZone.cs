@@ -35,7 +35,6 @@ namespace Torn
 
 		private bool Connect()
         {
-			Console.WriteLine("Start Connecting " + server + " " + port);
 			if (connected) {
 				client.Close();
 			};
