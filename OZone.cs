@@ -35,6 +35,7 @@ namespace Torn
 
 		private bool Connect()
         {
+			Console.WriteLine("Start Connecting " + server + " " + port);
 			if (connected) {
 				client.Close();
 			};
@@ -43,8 +44,12 @@ namespace Torn
 			connected = true;
 
 
-			ReadFromOzone(client, nwStream);
-			ReadFromOzone(client, nwStream);
+			var result = ReadFromOzone(client, nwStream);
+			Console.WriteLine(result);
+			result = ReadFromOzone(client, nwStream);
+
+			Console.WriteLine(result);
+
 			return connected;
 		}
 
