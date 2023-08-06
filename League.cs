@@ -479,6 +479,7 @@ namespace Torn
 		public int BaseDenied { get; set; }
 		public int YellowCards { get; set; }
 		public int RedCards { get; set; }
+		public int Health { get; set; }
 		public List<TermRecord> TermRecords { get; set; }
 
 		public bool IsEliminated { get; set; }
@@ -592,9 +593,11 @@ namespace Torn
 		{
 			return "GamePlayer " + PlayerId + " QRCode: " + QRCode;
 		}
-		public string GetFormattedAlias(string alias)
+		public string GetFormattedAlias(League league, GamePlayer gp)
 		{
-			return (IsEliminated ? "💀 " : "") + (RedCards > 0 ? (RedCards + "R ") : "") + (YellowCards > 0 ? (YellowCards + "Y ") : "") + alias + (IsEliminated ? ("(" + ZeroedScore + ")") : "");
+			string alias = league.Alias(gp);
+			bool zeroElimed = league.ZeroElimed;
+			return (IsEliminated ? "💀 " : zeroElimed ? ("(" + gp.Health + ") ") : "") + (RedCards > 0 ? (RedCards + "R ") : "") + (YellowCards > 0 ? (YellowCards + "Y ") : "") + alias + (IsEliminated ? ("(" + ZeroedScore + ")") : "");
 		}
 	}
 
@@ -1525,6 +1528,7 @@ namespace Torn
 						BaseDenied = xplayer.GetInt("basedenied"),
 						YellowCards = xplayer.GetInt("yellowcards"),
 						RedCards = xplayer.GetInt("redcards"),
+						Health = xplayer.GetInt("health"),
 						IsEliminated = xplayer.GetInt("elim") > 0
 					};
 
@@ -1771,6 +1775,7 @@ namespace Torn
 					doc.AppendNonZero(playerNode, "basedenied", player.BaseDenied);
 					doc.AppendNonZero(playerNode, "yellowcards", player.YellowCards);
 					doc.AppendNonZero(playerNode, "redcards", player.RedCards);
+					doc.AppendNonZero(playerNode, "health", player.Health);
 					doc.AppendNonZero(playerNode, "elim", player.IsEliminated ? 1 : 0);
 
 					doc.AppendNode(playerNode, "colour", ((int)player.Colour) - 1);

@@ -1071,7 +1071,7 @@ namespace Torn.UI
 							int yCard = gp.YellowCards;
 							int rCard = gp.RedCards;
 
-							serverPlayer.Item.SubItems[1].Text = gp.GetFormattedAlias(league.Alias(gp));
+							serverPlayer.Item.SubItems[1].Text = gp.GetFormattedAlias(league, gp);
 						}
 					}
 

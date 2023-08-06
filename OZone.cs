@@ -298,6 +298,7 @@ namespace Torn
 					if (playerRoot["bdest"] != null) serverPlayer.BaseDestroys = Int32.Parse(playerRoot["bdest"].ToString());
 					if (playerRoot["bdenialsh"] != null) serverPlayer.BaseDenies = Int32.Parse(playerRoot["bdenialsh"].ToString());
 					if (playerRoot["bdeniedsh"] != null) serverPlayer.BaseDenied = Int32.Parse(playerRoot["bdeniedsh"].ToString());
+					if (playerRoot["health"] != null) serverPlayer.Health = Int32.Parse(playerRoot["health"].ToString());
 					if (playerRoot["omid"] != null) 
 					{
 						string omid = playerRoot["omid"].ToString();
