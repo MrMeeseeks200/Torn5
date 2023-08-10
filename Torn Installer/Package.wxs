@@ -1,16 +1,26 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 	<Package Name="Torn" Manufacturer="Torn Team" Version="79.0.2" UpgradeCode="{4aa6ec0f-870f-4751-ac0a-9b1e328207ec}">
+		<!-- Constraints / Restrictions -->
 		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
+		<!-- Media & Package Setup -->
 		<Media Id="1" Cabinet="MAINAPP.cab" EmbedCab="yes"/>
 
 		<Icon Id="TornIcon.ico" SourceFile="TornIcon.ico"/>
 		<Property Id="ARPPRODUCTICON" Value="TornIcon.ico" />
-
+		
+		<!-- Directory Structure -->
 		<StandardDirectory Id="ProgramFiles64Folder">
 			<Directory Id="APPLICATIONROOTDIR"  Name="Torn" />
 		</StandardDirectory>
+		<StandardDirectory Id="ProgramMenuFolder">
+			<Directory Id="ProgramMenuDir" Name="Torn" />
+		</StandardDirectory>
+		<StandardDirectory Id="AppDataFolder">
+			<Directory Id="AppDataDir" Name="Torn" />
+		</StandardDirectory>
 
+		<!-- Primary Application -->
 		<DirectoryRef Id="APPLICATIONROOTDIR">
 			<Component Id='MainExecutable' Guid='{57D67F68-66D3-4D4C-A947-4D9B76707CEA}'>
 				<File Id='TornEXE' Name='Torn.exe' DiskId='1' Source='Torn.exe' KeyPath='yes'>
@@ -22,20 +32,30 @@
 				<File Id="FormsRibbonDLL" Name="System.Windows.Forms.Ribbon.dll" DiskId="1" Source="System.Windows.Forms.Ribbon.dll" />
 			</Component>
 		</DirectoryRef>
+		
+		<!-- Program Menu - Registry -->
+		<DirectoryRef Id="ProgramMenuDir">
+			<Component Id="ProgramMenuDir" Guid="{02C3D58E-2AAB-43E0-B15C-0FD3E0A0C0CE}">
+				<RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+				<RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+			</Component>
+		</DirectoryRef>
 
-		<StandardDirectory Id="ProgramMenuFolder">
-			<Directory Id="ProgramMenuDir" Name="Torn">
-				<Component Id="ProgramMenuDir" Guid="{02C3D58E-2AAB-43E0-B15C-0FD3E0A0C0CE}">
-					<RemoveFolder Id='ProgramMenuDir' On='uninstall' />
-					<RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
-				</Component>
-			</Directory>
-		</StandardDirectory>
+		<!-- AppData -->
+		<DirectoryRef Id='AppDataDir'>
+			<Component Id='AppDataDir' Guid='{7139BCF0-3E51-411C-BDAB-E2DB84BB6B65}'>
+				<RemoveFile Id='TornData' Name='*' On='uninstall' />
+				<RemoveFolder Id='AppDataDir' On='uninstall' />
+				<RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+			</Component>
+		</DirectoryRef>
 
+		<!-- Full Install -->
 		<Feature Id="Complete" Level="1">
 			<ComponentRef Id="MainExecutable"/>
 			<ComponentRef Id="WindowsFormsRibbon"/>
 			<ComponentRef Id="ProgramMenuDir"/>
+			<ComponentRef Id="AppDataDir"/>
 		</Feature>
 
 	</Package>
