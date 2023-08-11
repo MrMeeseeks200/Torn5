@@ -1,7 +1,11 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+	 xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
 	<Package Name="Torn" Manufacturer="Torn Team" Version="79.0.1" UpgradeCode="{4aa6ec0f-870f-4751-ac0a-9b1e328207ec}">
 		<!-- Constraints / Restrictions -->
 		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+
+		<netfx:DotNetCompatibilityCheck Property="NETFRAMEWORKCHECK" RuntimeType="desktop" Platform="$(Torn.Platform)" Version="4.0.0"/>
+		<Launch Condition="NOT NETFRAMEWORKCHECK = 0" Message="Torn5 Requires the .NET Framework 4.0 to be installed" />
 
 		<!-- Media & Package Setup -->
 		<Media Id="1" Cabinet="MAINAPP.cab" EmbedCab="yes"/>
