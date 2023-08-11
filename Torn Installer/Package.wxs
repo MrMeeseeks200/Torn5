@@ -12,6 +12,8 @@
 		<Property Id="ApplicationFolderName" Value="Torn" />
 		<Property Id="WixAppFolder" Value="WixPerMachineFolder" />
 		<WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+		<WixVariable Id="WixUIBannerBmp" Value="TornBanner.bmp" />
+		<WixVariable Id="WixUIDialogBmp" Value="TornDlg.bmp" />
 		
 		<!-- Directory Structure -->
 		<StandardDirectory Id="TARGETDIR">
