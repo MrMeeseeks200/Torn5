@@ -1,8 +1,17 @@
 ﻿<Project Sdk="WixToolset.Sdk/4.0.0">
-    <PropertyGroup>
-        <OutputType>Package</OutputType>
-    </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\Torn.csproj" />
-    </ItemGroup>
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="TornIcon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="License.rtf" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Torn.csproj" />
+  </ItemGroup>
 </Project>

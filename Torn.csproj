@@ -431,9 +431,7 @@
     <None Include="Torn_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="TornIcon.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="TornIcon.ico" />
     <None Include="version.txt" />
   </ItemGroup>
   <ItemGroup>

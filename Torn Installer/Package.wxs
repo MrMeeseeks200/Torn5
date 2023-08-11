@@ -1,5 +1,5 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-	<Package Name="Torn" Manufacturer="Torn Team" Version="79.0.2" UpgradeCode="{4aa6ec0f-870f-4751-ac0a-9b1e328207ec}">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+	<Package Name="Torn" Manufacturer="Torn Team" Version="79.0.1" UpgradeCode="{4aa6ec0f-870f-4751-ac0a-9b1e328207ec}">
 		<!-- Constraints / Restrictions -->
 		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
 
@@ -8,10 +8,14 @@
 
 		<Icon Id="TornIcon.ico" SourceFile="TornIcon.ico"/>
 		<Property Id="ARPPRODUCTICON" Value="TornIcon.ico" />
+
+		<Property Id="ApplicationFolderName" Value="Torn" />
+		<Property Id="WixAppFolder" Value="WixPerMachineFolder" />
+		<WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
 		
 		<!-- Directory Structure -->
-		<StandardDirectory Id="ProgramFiles64Folder">
-			<Directory Id="APPLICATIONROOTDIR"  Name="Torn" />
+		<StandardDirectory Id="TARGETDIR">
+			<Directory Id="APPLICATIONFOLDER"  Name="Torn" />
 		</StandardDirectory>
 		<StandardDirectory Id="ProgramMenuFolder">
 			<Directory Id="ProgramMenuDir" Name="Torn" />
@@ -21,11 +25,13 @@
 		</StandardDirectory>
 
 		<!-- Primary Application -->
-		<DirectoryRef Id="APPLICATIONROOTDIR">
+		<DirectoryRef Id="APPLICATIONFOLDER">
 			<Component Id='MainExecutable' Guid='{57D67F68-66D3-4D4C-A947-4D9B76707CEA}'>
 				<File Id='TornEXE' Name='Torn.exe' DiskId='1' Source='Torn.exe' KeyPath='yes'>
 					<Shortcut Id="startmenuTorn" Directory="ProgramMenuDir" Name="Torn"
-						WorkingDirectory='APPLICATIONROOTDIR' Icon="TornIcon.ico" IconIndex="0" Advertise="yes" />
+						WorkingDirectory='APPLICATIONFOLDER' Icon="TornIcon.ico" IconIndex="0" Advertise="yes" />
+					<Shortcut Id="desktopTorn" Directory="DesktopFolder" Name="Torn" 
+						WorkingDirectory="APPLICATIONFOLDER" Icon="TornIcon.ico" IconIndex="0" Advertise="yes" />
 				</File>
 			</Component>
 			<Component Id="WindowsFormsRibbon" Guid="{457725E2-C090-48C1-AFC2-8DB8665A603B}">
@@ -40,6 +46,14 @@
 				<RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
 			</Component>
 		</DirectoryRef>
+		
+		<!-- Desktop -->
+		<StandardDirectory Id='DesktopFolder'>
+			<Component Id='DesktopDir' Guid='{81D649B5-40EE-4658-8CE5-9DEED04F2E61}'>
+				<RemoveFile Id='DesktopShortcut' Name='Torn' On='uninstall' />
+				<RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+			</Component>
+		</StandardDirectory>
 
 		<!-- AppData -->
 		<DirectoryRef Id='AppDataDir'>
@@ -50,13 +64,25 @@
 			</Component>
 		</DirectoryRef>
 
-		<!-- Full Install -->
-		<Feature Id="Complete" Level="1">
-			<ComponentRef Id="MainExecutable"/>
-			<ComponentRef Id="WindowsFormsRibbon"/>
-			<ComponentRef Id="ProgramMenuDir"/>
-			<ComponentRef Id="AppDataDir"/>
+		<!-- Install Options -->
+		<Feature Id="Complete" Level="1" Title="Torn 5" Description="Full Installation" Display="expand">
+			<Feature Id="MainProgram" Title="Torn 5" Description="The main TORN package" Level="1" AllowAbsent="no" AllowAdvertise="no">
+				<ComponentRef Id="MainExecutable"/>
+				<ComponentRef Id="WindowsFormsRibbon"/>
+				<ComponentRef Id="AppDataDir"/>
+			</Feature>
+			<Feature Id="ProgramMenu" Title="Program Menu Shortcut" Description="Adds a shortcut to TORN in the program menu" Level="1" AllowAdvertise="no">
+				<ComponentRef Id="ProgramMenuDir"/>				
+			</Feature>
+			<Feature Id="Desktop" Title="Desktop Shortcut" Description="Adds a shortcut to TORN on the Desktop" Level="1000" AllowAdvertise="no">
+				<ComponentRef Id="DesktopDir" />
+			</Feature>
 		</Feature>
+		
+		<!-- UI Bootstrapping -->
+		<UI>
+			<ui:WixUI Id="WixUI_Advanced" />
+		</UI>
 
 	</Package>
 </Wix>
