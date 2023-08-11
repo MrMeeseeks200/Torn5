@@ -44,8 +44,8 @@ newVersion="$major.$minor.$patch"
 echo $newVersion > version.txt
 
 # Update the version in the Torn Installer
-installerVersion=$(grep -Eo 'Version="[0-9\.]+"' "$installPackPath")
-if [ -z $installerVersion ]
+installerVersion="$(grep -Eom 1 'Version="[0-9\.]+"' "$installPackPath")"
+if [ -z "$installerVersion" ]
   then
     echo "WARNING: installer package ($installPackPath) version not updated!"
   else
