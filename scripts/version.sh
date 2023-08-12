@@ -10,7 +10,7 @@ elif [ -z "$1" ] || [ "$1" != "major" ] && [ "$1" != "minor" ] && [ "$1" != "pat
 fi
 
 # Installer Paths
-installPackPath="./Torn Installer/Package.wxs"
+installPackPath="./Torn Installer/Torn Installer.wixproj"
 
 currentVersion=$(<version.txt)  
 
@@ -44,12 +44,12 @@ newVersion="$major.$minor.$patch"
 echo $newVersion > version.txt
 
 # Update the version in the Torn Installer
-installerVersion="$(grep -Eom 1 'Version="[0-9\.]+"' "$installPackPath")"
+installerVersion="$(grep -Eom 1 'Torn.Version=[0-9\.]+' "$installPackPath")"
 if [ -z "$installerVersion" ]
   then
     echo "WARNING: installer package ($installPackPath) version not updated!"
   else
-    sed -i "s/$installerVersion/Version=\"$newVersion\"/" "$installPackPath"
+    sed -i "s/$installerVersion/Torn.Version=$newVersion/" "$installPackPath"
 fi
 
 echo $currentVersion \> $newVersion

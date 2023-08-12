@@ -1,8 +1,8 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
 	 xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
-	<Package Name="Torn" Manufacturer="Torn Team" Version="79.0.1" UpgradeCode="{4aa6ec0f-870f-4751-ac0a-9b1e328207ec}">
+	<Package Name="Torn" Manufacturer="Torn Team" Version="$(Torn.Version)" UpgradeCode="{4aa6ec0f-870f-4751-ac0a-9b1e328207ec}">
 		<!-- Constraints / Restrictions -->
-		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+		<MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" MigrateFeatures="yes" AllowSameVersionUpgrades="yes" />
 
 		<netfx:DotNetCompatibilityCheck Property="NETFRAMEWORKCHECK" RuntimeType="desktop" Platform="$(Torn.Platform)" Version="4.0.0"/>
 		<Launch Condition="NOT NETFRAMEWORKCHECK = 0" Message="Torn5 Requires the .NET Framework 4.0 to be installed" />
@@ -25,9 +25,6 @@
 		</StandardDirectory>
 		<StandardDirectory Id="ProgramMenuFolder">
 			<Directory Id="ProgramMenuDir" Name="Torn" />
-		</StandardDirectory>
-		<StandardDirectory Id="AppDataFolder">
-			<Directory Id="AppDataDir" Name="Torn" />
 		</StandardDirectory>
 
 		<!-- Primary Application -->
@@ -61,21 +58,11 @@
 			</Component>
 		</StandardDirectory>
 
-		<!-- AppData -->
-		<DirectoryRef Id='AppDataDir'>
-			<Component Id='AppDataDir' Guid='{7139BCF0-3E51-411C-BDAB-E2DB84BB6B65}'>
-				<RemoveFile Id='TornData' Name='*' On='uninstall' />
-				<RemoveFolder Id='AppDataDir' On='uninstall' />
-				<RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
-			</Component>
-		</DirectoryRef>
-
 		<!-- Install Options -->
 		<Feature Id="Complete" Level="1" Title="Torn 5" Description="Full Installation" Display="expand">
-			<Feature Id="MainProgram" Title="Torn 5" Description="The main TORN package" Level="1" AllowAbsent="no" AllowAdvertise="no">
+			<Feature Id="MainProgram" Title="Torn 5" Description="The main TORN package" Level="1" AllowAbsent="no" AllowAdvertise="no" ConfigurableDirectory="TARGETDIR">
 				<ComponentRef Id="MainExecutable"/>
 				<ComponentRef Id="WindowsFormsRibbon"/>
-				<ComponentRef Id="AppDataDir"/>
 			</Feature>
 			<Feature Id="ProgramMenu" Title="Program Menu Shortcut" Description="Adds a shortcut to TORN in the program menu" Level="1" AllowAdvertise="no">
 				<ComponentRef Id="ProgramMenuDir"/>				
