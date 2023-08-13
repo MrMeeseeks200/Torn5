@@ -10,7 +10,7 @@
 		<!-- Media & Package Setup -->
 		<Media Id="1" Cabinet="MAINAPP.cab" EmbedCab="yes"/>
 
-		<Icon Id="TornIcon.ico" SourceFile="TornIcon.ico"/>
+		<Icon Id="TornIcon.exe" SourceFile="TornIcon.ico"/>
 		<Property Id="ARPPRODUCTICON" Value="TornIcon.ico" />
 
 		<Property Id="ApplicationFolderName" Value="Torn" />
@@ -32,9 +32,9 @@
 			<Component Id='MainExecutable' Guid='{57D67F68-66D3-4D4C-A947-4D9B76707CEA}'>
 				<File Id='TornEXE' Name='Torn.exe' DiskId='1' Source='Torn.exe' KeyPath='yes'>
 					<Shortcut Id="startmenuTorn" Directory="ProgramMenuDir" Name="Torn"
-						WorkingDirectory='APPLICATIONFOLDER' Icon="TornIcon.ico" IconIndex="0" Advertise="yes" />
+						WorkingDirectory='APPLICATIONFOLDER' Icon="TornIcon.exe" IconIndex="0" Advertise="yes" />
 					<Shortcut Id="desktopTorn" Directory="DesktopFolder" Name="Torn" 
-						WorkingDirectory="APPLICATIONFOLDER" Icon="TornIcon.ico" IconIndex="0" Advertise="yes" />
+						WorkingDirectory="APPLICATIONFOLDER" Icon="TornIcon.exe" IconIndex="0" Advertise="yes" />
 				</File>
 			</Component>
 			<Component Id="WindowsFormsRibbon" Guid="{457725E2-C090-48C1-AFC2-8DB8665A603B}">
