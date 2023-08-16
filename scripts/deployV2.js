@@ -117,7 +117,7 @@ const run = async () => {
 
     await client.uploadFile(
       "oldInstaller.msi",
-      `${versionsDir}/Torn Installer_${version}.msi`
+      `${versionsDir}/Torn Installer_${version.trim()}.msi`
     );
 
     await client.uploadFile(
