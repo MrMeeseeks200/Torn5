@@ -103,57 +103,6 @@
       <Component Id="ZstdNet.dll" Guid="{636d60e5-3935-4396-9f51-e5200218e920}"> 
         <File  Id="ZstdNet.dll" Name="ZstdNet.dll" Source="ZstdNet.dll" DiskId="1"/> 
       </Component> 
-      <Component Id="Google.Protobuf.xml" Guid="{33f5904c-733c-4583-a6d1-f82e08f63310}"> 
-        <File  Id="Google.Protobuf.xml" Name="Google.Protobuf.xml" Source="Google.Protobuf.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="K4os.Compression.LZ4.Streams.xml" Guid="{a62afdd4-2435-4267-9373-689a49b5fa1d}"> 
-        <File  Id="K4os.Compression.LZ4.Streams.xml" Name="K4os.Compression.LZ4.Streams.xml" Source="K4os.Compression.LZ4.Streams.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="K4os.Compression.LZ4.xml" Guid="{3512b7c3-85c0-4d4f-b76a-e7ba3ea60df8}"> 
-        <File  Id="K4os.Compression.LZ4.xml" Name="K4os.Compression.LZ4.xml" Source="K4os.Compression.LZ4.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="K4os.Hash.xxHash.xml" Guid="{5c56b26a-7e00-47d9-9878-34a7e2bde4dd}"> 
-        <File  Id="K4os.Hash.xxHash.xml" Name="K4os.Hash.xxHash.xml" Source="K4os.Hash.xxHash.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="Microsoft.Bcl.AsyncInterfaces.xml" Guid="{01f4c1b7-481c-4096-afc4-5b600451e89c}"> 
-        <File  Id="Microsoft.Bcl.AsyncInterfaces.xml" Name="Microsoft.Bcl.AsyncInterfaces.xml" Source="Microsoft.Bcl.AsyncInterfaces.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="MySql.Data.xml" Guid="{d0da82cf-c6bd-4bbb-a056-c25068521355}"> 
-        <File  Id="MySql.Data.xml" Name="MySql.Data.xml" Source="MySql.Data.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="Newtonsoft.Json.xml" Guid="{5f62628d-4e3e-47aa-beb8-89693ed3d895}"> 
-        <File  Id="Newtonsoft.Json.xml" Name="Newtonsoft.Json.xml" Source="Newtonsoft.Json.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="nunit.framework.xml" Guid="{6d9a7fb6-c105-4933-b3b0-f54cfb87b4d8}"> 
-        <File  Id="nunit.framework.xml" Name="nunit.framework.xml" Source="nunit.framework.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="Svg.xml" Guid="{236b74d6-ffee-4107-99c0-2e9c35d78134}"> 
-        <File  Id="Svg.xml" Name="Svg.xml" Source="Svg.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Buffers.xml" Guid="{431e1544-9681-472e-8c96-edf5ba8b8188}"> 
-        <File  Id="System.Buffers.xml" Name="System.Buffers.xml" Source="System.Buffers.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Memory.xml" Guid="{420d4974-19ea-4ee3-8c0c-edcbc5c9b77f}"> 
-        <File  Id="System.Memory.xml" Name="System.Memory.xml" Source="System.Memory.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Numerics.Vectors.xml" Guid="{40259898-587f-4cd4-b0fe-7276e2db06b2}"> 
-        <File  Id="System.Numerics.Vectors.xml" Name="System.Numerics.Vectors.xml" Source="System.Numerics.Vectors.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Runtime.CompilerServices.Unsafe.xml" Guid="{6087616d-4345-4210-8c4b-c2194d640240}"> 
-        <File  Id="System.Runtime.CompilerServices.Unsafe.xml" Name="System.Runtime.CompilerServices.Unsafe.xml" Source="System.Runtime.CompilerServices.Unsafe.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Text.Encodings.Web.xml" Guid="{9f4d2f91-71e4-4539-b04d-dcde75926742}"> 
-        <File  Id="System.Text.Encodings.Web.xml" Name="System.Text.Encodings.Web.xml" Source="System.Text.Encodings.Web.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Text.Json.xml" Guid="{2685d0f3-a73e-442d-b4db-a06ece4b3fa3}"> 
-        <File  Id="System.Text.Json.xml" Name="System.Text.Json.xml" Source="System.Text.Json.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.Threading.Tasks.Extensions.xml" Guid="{a77394ad-b9d1-4dd6-9b54-10c098f8d311}"> 
-        <File  Id="System.Threading.Tasks.Extensions.xml" Name="System.Threading.Tasks.Extensions.xml" Source="System.Threading.Tasks.Extensions.xml" DiskId="1"/> 
-      </Component> 
-      <Component Id="System.ValueTuple.xml" Guid="{6a41d784-d896-4964-beea-a24da703ccb1}"> 
-        <File  Id="System.ValueTuple.xml" Name="System.ValueTuple.xml" Source="System.ValueTuple.xml" DiskId="1"/> 
-      </Component> 
       <Component Id="Torn.exe.config" Guid="{132d4b51-c76b-4772-aeba-3b40d1c49b42}"> 
         <File  Id="Torn.exe.config" Name="Torn.exe.config" Source="Torn.exe.config" DiskId="1"/> 
       </Component> 
@@ -201,23 +150,6 @@
         <ComponentRef Id="System.Windows.Forms.Ribbon.dll"/> 
         <ComponentRef Id="Ubiety.Dns.Core.dll"/> 
         <ComponentRef Id="ZstdNet.dll"/> 
-        <ComponentRef Id="Google.Protobuf.xml"/> 
-        <ComponentRef Id="K4os.Compression.LZ4.Streams.xml"/> 
-        <ComponentRef Id="K4os.Compression.LZ4.xml"/> 
-        <ComponentRef Id="K4os.Hash.xxHash.xml"/> 
-        <ComponentRef Id="Microsoft.Bcl.AsyncInterfaces.xml"/> 
-        <ComponentRef Id="MySql.Data.xml"/> 
-        <ComponentRef Id="Newtonsoft.Json.xml"/> 
-        <ComponentRef Id="nunit.framework.xml"/> 
-        <ComponentRef Id="Svg.xml"/> 
-        <ComponentRef Id="System.Buffers.xml"/> 
-        <ComponentRef Id="System.Memory.xml"/> 
-        <ComponentRef Id="System.Numerics.Vectors.xml"/> 
-        <ComponentRef Id="System.Runtime.CompilerServices.Unsafe.xml"/> 
-        <ComponentRef Id="System.Text.Encodings.Web.xml"/> 
-        <ComponentRef Id="System.Text.Json.xml"/> 
-        <ComponentRef Id="System.Threading.Tasks.Extensions.xml"/> 
-        <ComponentRef Id="System.ValueTuple.xml"/> 
         <ComponentRef Id="Torn.exe.config"/> 
 			</Feature>
 			<Feature Id="ProgramMenu" Title="Program Menu Shortcut" Description="Adds a shortcut to TORN in the program menu" Level="1" AllowAdvertise="no">
