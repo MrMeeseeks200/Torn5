@@ -239,26 +239,15 @@ namespace Torn
 
 		public static string GetDeployedVersion()
 		{
-            string deployedVersion = "";
-			try
+			string deployedVersion = "";
+
+            try
 			{
 
-				FtpWebRequest request = (FtpWebRequest)WebRequest.Create("ftp://horsman.synology.me/Torn5/Current/version.txt");
-				request.Method = WebRequestMethods.Ftp.DownloadFile;
-				request.EnableSsl = true;
+                System.Net.WebClient wc = new System.Net.WebClient();
+                byte[] raw = wc.DownloadData("https://torn.lasersports.au/version/");
 
-				using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-				{
-					using (var stream = response.GetResponseStream())
-					{
-						byte[] buffer = new byte[0x10000];
-						int len;
-						while ((len = stream.Read(buffer, 0, buffer.Length)) > 0)
-						{
-							deployedVersion += Encoding.ASCII.GetString(buffer, 0, len);
-						}
-					}
-				}
+                deployedVersion = System.Text.Encoding.UTF8.GetString(raw);
 			} catch
 			{
 				Console.WriteLine("Cannot fetch deployed version");

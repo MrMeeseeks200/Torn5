@@ -5,7 +5,7 @@ const fsp = require("fs/promises");
 require("dotenv").config();
 
 const latestDir =
-  "/home/torn-lasersports/htdocs/torn.lasersports.au/downloads/latestV2";
+  "/home/torn-lasersports/htdocs/torn.lasersports.au/downloads/latest";
 const versionsDir =
   "/home/torn-lasersports/htdocs/torn.lasersports.au/downloads/versions/files";
 
