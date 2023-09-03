@@ -92,9 +92,9 @@ namespace Torn.UI
 				.ToList();
 		}
 
-		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis)
+		List<List<int>> GetGrid(FixtureTeams teams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis)
 		{
-			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+			List<List<int>> bestGrid = SetupGrid(teams, teamsPerGame, gamesPerTeam);
 
 			double bestScore = CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays);
 
@@ -438,8 +438,9 @@ namespace Torn.UI
 		}
 
 
-		List<List<int>> SetupGrid (double numberOfTeams, double teamsPerGame, double gamesPerTeam)
+		List<List<int>> SetupGrid (FixtureTeams teams, double teamsPerGame, double gamesPerTeam)
         {
+			int numberOfTeams = teams.Count();
 			double numGames = (numberOfTeams / teamsPerGame) * gamesPerTeam;
 
 			// set up grid
@@ -542,11 +543,13 @@ namespace Torn.UI
 			int maxMillis = (int)maxTime.Value * 1000;
 
 			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
-			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());			
+			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
+			LogGrid(existingPlays);
 
 			List<List<int>> existingPlaysPadded = PadPlaysToTeamNumber((int)numberOfTeams, existingPlays);
+            LogGrid(existingPlaysPadded);
 
-			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
+            List<List<int>> grid = GetGrid(Holder.Fixture.Teams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
 
