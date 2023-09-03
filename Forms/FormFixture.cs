@@ -92,9 +92,9 @@ namespace Torn.UI
 				.ToList();
 		}
 
-		List<List<int>> GetGrid(double numberOfTeams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis)
+		List<List<int>> GetGrid(FixtureTeams teams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis)
 		{
-			List<List<int>> bestGrid = SetupGrid(numberOfTeams, teamsPerGame, gamesPerTeam);
+			List<List<int>> bestGrid = SetupGrid(teams, teamsPerGame, gamesPerTeam);
 
 			double bestScore = CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays);
 
@@ -165,9 +165,9 @@ namespace Torn.UI
 			Console.WriteLine("bestScore: {0}", bestScore);
 			LogGrid(bestGrid);
 			Console.WriteLine("Existing Plays");
-			LogGrid(existingPlays);
+			LogGrid(NormalisePlays(existingPlays));
 			Console.WriteLine("Plays");
-			LogGrid(CalcPlays(bestGrid, hasRef, existingPlays));
+			LogGrid(NormalisePlays(CalcPlays(bestGrid, hasRef, existingPlays)));
 			scoreLabel.Text = bestScore >= 10000 ? "Extend max time and regenerate: " + Math.Round(bestScore).ToString() : "Score: " + Math.Round(bestScore).ToString() + " (Lower is better)";
 			scoreLabel.BackColor = bestScore >= 10000 ? Color.FromName("red") : Color.Transparent;
 			scoreLabel.Visible = true;
@@ -229,28 +229,81 @@ namespace Torn.UI
 				
 		}
 
+		List<List<int>> NormalisePlays(List<List<int>> grid)
+		{
+            List<int> playsTotals = SumRows(grid);
+            double mostPlays = 0;
+			List<List<int>> updatedGrid = new List<List<int>>();
+
+            foreach (int totalPlays in playsTotals)
+            {
+                if (totalPlays > mostPlays)
+                {
+                    mostPlays = totalPlays;
+                }
+            }
+
+
+			for (int i = 0; i < grid.Count; i++)
+			{
+				List<int> row = grid[i];
+				List<int> newRow = new List<int>();
+				double teamPlays = playsTotals[i];
+				double multiplier = teamPlays == 0 || mostPlays == 0 ? 1 : mostPlays / teamPlays;
+
+				for(int j =  0; j < row.Count; j++)
+				{
+                    double teamPlays2 = playsTotals[j];
+                    double multiplier2 = teamPlays2 == 0 || mostPlays == 0 ? 1 : mostPlays / teamPlays2;
+					double mult = Math.Max(multiplier, multiplier2);
+					double result = mult * row[j];
+                    newRow.Add((int)Math.Round(result));
+				}
+				updatedGrid.Add(newRow);
+			}
+			return updatedGrid;
+        }
+
+		double GetAveragePlays(List<List<int>> grid)
+		{
+			double total = 0;
+            double count = 0;
+			for(int i = 0; i < grid.Count; i++)
+			{
+				for(int j = 0; j < grid[i].Count; j++)
+				{
+					if(i != j)
+					{
+						total += grid[i][j];
+						count++;
+					}
+				}
+			}
+			return total / count;
+		}
+
 		double CalcScore(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, bool log = false)
 		{
-			int totalTeams = FlattenGrid(grid).Uniq().Count;
+			List<List<int>> normalisedExistingPlays = NormalisePlays(existingPlays);
+            int totalTeams = FlattenGrid(grid).Uniq().Count;
 			int BACK_TO_BACK_PENALTY = (int)backToBackPenalty.Value;
 			int teamsPerGame = grid[0].Count;
-			double previousAveragePlays = AverageRow(SumRows(existingPlays)) / totalTeams;
-			List<List<int>> plays = CalcPlays(grid, hasRef, existingPlays);
-			double averagePlays = (((gamesPerTeam - (hasRef ? 1 : 0)) * (teamsPerGame  - (hasRef ? 1 : 0)) * (totalTeams - 1)) / (totalTeams * totalTeams)) + previousAveragePlays;
+			double previousAveragePlays = GetAveragePlays(normalisedExistingPlays);
+			List<List<int>> plays = NormalisePlays(CalcPlays(grid, hasRef, existingPlays));
+			double averagePlays = GetAveragePlays(plays);
 
 			double score = 0;
 
-			for (int player1 = 0; player1 < plays.Count; player1++)
+            for (int player1 = 0; player1 < plays.Count; player1++)
             {
-				score += plays[player1][player1] * 10000; // penalty for playing themselves
+                score += plays[player1][player1] * 100000; // penalty for playing themselves
 				for(int player2 = player1 + 1; player2 < plays[player1].Count; player2++)
                 {
-					score += Math.Pow(plays[player1][player2] - averagePlays, 6);
-
+                    score += Math.Pow(plays[player1][player2] - averagePlays, 4);
 				}
 			}
 
-			 List<List<int>> transposedGrid = TransposeGrid(grid);
+            List<List<int>> transposedGrid = TransposeGrid(grid);
 
 			//penalty for same colour
 			foreach (List<int> colour in transposedGrid)
@@ -261,7 +314,7 @@ namespace Torn.UI
 				double gamesOnEachColour = gamesPerTeam / numberOfColours;
 				int penalties = colour.FindAll(team => colour.FindAll(t => t == team).Count > gamesOnEachColour).Count;
 
-				double penalty = penalties * 10000;
+				double penalty = penalties * 100000;
 				score += penalty;
             }
 
@@ -385,8 +438,9 @@ namespace Torn.UI
 		}
 
 
-		List<List<int>> SetupGrid (double numberOfTeams, double teamsPerGame, double gamesPerTeam)
+		List<List<int>> SetupGrid (FixtureTeams teams, double teamsPerGame, double gamesPerTeam)
         {
+			int numberOfTeams = teams.Count();
 			double numGames = (numberOfTeams / teamsPerGame) * gamesPerTeam;
 
 			// set up grid
@@ -489,11 +543,13 @@ namespace Torn.UI
 			int maxMillis = (int)maxTime.Value * 1000;
 
 			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
-			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());			
+			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
+			LogGrid(existingPlays);
 
 			List<List<int>> existingPlaysPadded = PadPlaysToTeamNumber((int)numberOfTeams, existingPlays);
+            LogGrid(existingPlaysPadded);
 
-			List<List<int>> grid = GetGrid(numberOfTeams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
+            List<List<int>> grid = GetGrid(Holder.Fixture.Teams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
 
