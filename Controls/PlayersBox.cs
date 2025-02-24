@@ -19,7 +19,8 @@ namespace Torn.UI
 		public void LoadGame(League league, ServerGame serverGame)
 		{
 			Items.Clear();
-		if (serverGame.Players.Count == 0 && serverGame.Game != null)  // ServerGame is a fake, created from game; but ServerGame.Players is not filled in yet, so fill it in.
+
+			if (serverGame.Players.Count == 0 && serverGame.Game != null)  // ServerGame is a fake, created from game; but ServerGame.Players is not filled in yet, so fill it in.
 				foreach (var player in serverGame.Game.AllPlayers())
 				{
 					var serverPlayer = new ServerPlayer();
@@ -92,8 +93,8 @@ namespace Torn.UI
 					item.SubItems.Add(score);
 					item.SubItems.Add(player.Grade);
 					item.Tag = player;
-						player.Item = item;
-						Items.Add(item);
+					player.Item = item;
+					Items.Add(item);
 				}
 
 			ListView.Sort();

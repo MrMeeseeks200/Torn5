@@ -681,16 +681,16 @@ namespace Torn.UI
 				ExportPages.ExportFixtures(exportFolder, SelectedLeagues());
 		}
 
-		FormFixture formFixture = new FormFixture();
+		private FormFixture formFixture;
 		void ButtonFixtureClick(object sender, EventArgs e)
 		{
-			if (formFixture == null)
+			if (formFixture == null || formFixture.IsDisposed)
 				formFixture = new FormFixture() { Icon = (Icon)Icon.Clone() };
 			if (listViewLeagues.SelectedItems.Count == 1)
 			{
 				formFixture.Holder = (Holder)listViewLeagues.SelectedItems[0].Tag;
 				formFixture.ExportFolder = exportFolder;
-				formFixture.ShowDialog();
+				formFixture.Show();
 			}
 		}
 

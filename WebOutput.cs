@@ -120,7 +120,7 @@ namespace Torn.Report
 			}
 		}
 
-		/// <summary>Generate one report. The type of report generated is specified in the ReportTemplate.</summary>
+		/// <summary>Generate a report on data from multiple league files. The type of report generated is specified in the ReportTemplate.</summary>
 		public static ZoomReportBase Report(List<League> leagues, bool includeSecret, ReportTemplate rt, string exportFolder)
 		{
 			bool description = rt.Settings.Contains("Description");
@@ -244,11 +244,7 @@ namespace Torn.Report
 
 		public WebOutput(int port = 8080)
 		{
-			if (port != 0)
-			{
-				ws = new WebServer(SendResponse, "http://localhost:" + port.ToString(CultureInfo.InvariantCulture) + "/");
-				ws.Run();
-			}
+			Start(port);
 		}
 
 		public void Dispose()
@@ -257,17 +253,22 @@ namespace Torn.Report
 				ws.Stop();
 		}
 
+		public void Start(int port)
+		{
+			if (port != 0)
+			{
+				ws = new WebServer(SendResponse, "http://localhost:" + port.ToString(CultureInfo.InvariantCulture) + "/");
+				ws.Run();
+			}
+		}
+
 		/// <summary>Restart the web server, listening on a new port number.</summary>
 		public void Restart(int port)
 		{
 			if (ws != null)
 			{
 				ws.Stop();
-				if (port != 0)
-				{
-					ws = new WebServer(SendResponse, "http://localhost:" + port.ToString(CultureInfo.InvariantCulture) + "/");
-					ws.Run();
-				}
+				Start(port);
 			}
 		}
 
@@ -306,37 +307,71 @@ namespace Torn.Report
 			return sb.ToString();
 		}
 
-		string ScoreboardPage(League league, OutputFormat outputFormat = OutputFormat.Svg)
+		/// <summary>Set up a page using XMLHttpRequest to request the actual scoreboard report into the 'scoreboard' div.</summary>
+		string ScoreboardPage(OutputFormat outputFormat = OutputFormat.Svg)
 		{
 			ZoomReports reports = new ZoomReports();
 			reports.Colors.BackgroundColor = Color.Empty;
 			reports.Colors.OddColor = Color.Empty;
-			reports.Add(new ZoomHtmlInclusion("<div id='scoreboard'>SCOREBOARD</div>"));
+			reports.Add(new ZoomHtmlInclusion("<div id='scoreboard'>" + XmlHttpRequestScoreBoard(null) + "</div>"));
 			reports.Add(new ZoomSeparator());
+
+			// Two XmlHttpRequest objects: one to ask the date/time of the latest game; the second to request an HTML fragment containing an SVG of the scoreboard.
+			// But the second one passes the date/time of the game the scoreboard is _currently_ displaying as a parameter in the X-Previous header.
+			// XmlHttpRequestScoreBoard() (C# code, further down) checks that parameter, and while it's the same as Torn's MostRecentGame, it sleeps.
+			// When a game gets committed in Torn, MostRecentGame changes, and XmlHttpRequestScoreBoard() sends the new scoreboard SVG to that XmlHttpRequest object.
+			// Note that each onreadystatechange function calls the _other_ XmlHttpRequest object's send() --
+			// when a reply as to the latest game date/time comes in, the Javascript immediately calls xhrScoreboard.send() with that date/time as parameter,
+			// and when a reply as to the latest scoreboard data comes in, the Javascript immediately requeries the game date/time (because if we're getting scoreboard data, MostRecentGame must have changed).
+			// The final few lines of Javascript set off an initial request for game date/time, in order to get that first xhrLatest.onreadystatechange to fire.
+			// We also svg.setAttribute('width') so that the scoreboard SVG mostly fills the browser window -- full width minus 2 pixels, or 90% of height (to leave room for extra text at the bottom).
 			reports.Add(new ZoomHtmlInclusion(@"</div>
 <br/><a href=\'index.html\'>Index</a><div>
 <script>
-var xhr = new XMLHttpRequest();
-xhr.onreadystatechange = function () {
-	if (this.readyState == 4 && (this.status == 200 || this.status != 200))
-	{
-		document.getElementById('scoreboard').innerHTML = xhr.responseText;
-		window.onload();
+var latest = '(none)';
+var xhrLatest = new XMLHttpRequest();
+var xhrScoreboard = new XMLHttpRequest();
 
-		for (const svg of  document.querySelectorAll('svg'))
-			if (svg.getAttribute('width') > document.documentElement.clientWidth)
-				svg.setAttribute('width', document.documentElement.clientWidth - 2);
+xhrLatest.onreadystatechange = function () {
+	if (this.readyState == 4 && this.status == 200)
+	{
+		xhrScoreboard.open('POST', 'scoreboard', true);
+		xhrScoreboard.setRequestHeader('X-Previous', latest);
+		latest = xhrLatest.responseText;
+		xhrScoreboard.send();		
 	}
 };
-xhr.open('GET', 'scoreboard', true);
-xhr.send();
+
+xhrScoreboard.onreadystatechange = function () {
+	if (this.readyState == 4)
+	{
+		if (this.status == 200)
+		{
+			document.getElementById('scoreboard').innerHTML = xhrScoreboard.responseText;
+			window.onload();
+
+			for (const svg of document.querySelectorAll('svg'))
+				svg.setAttribute('width', Math.min(document.documentElement.clientWidth - 2, document.documentElement.clientHeight / svg.clientHeight * svg.clientWidth * 0.9));
+		}
+		else
+			document.getElementById('scoreboard').innerHTML = '<p>' + this.status + ': ' + this.statusText + '</p>';
+
+		xhrLatest.open('GET', 'latest', true);
+		xhrLatest.send();
+	}
+};
+
+xhrScoreboard.open('GET', 'scoreboard', true);
+xhrScoreboard.setRequestHeader('X-Previous', '(none)');
+xhrScoreboard.send();
 </script>
 "));
 			return reports.ToOutput(outputFormat);
 		}
 
-		string SendResponse(HttpListenerRequest request)
+		void SendResponse(HttpListenerContext context)
 		{
+			var request = context.Request;
 			try
 			{
 				string[] urlParts = request.RawUrl.Split('/');
@@ -351,35 +386,55 @@ xhr.send();
 				if (request.RawUrl == "/")
 				{
 					if (Leagues.Count == 1)
-						return ReportPages.OverviewPage(holder, false, OutputFormat.Svg);
+						Respond(context, ReportPages.OverviewPage(holder, false, OutputFormat.Svg));
 					else
-						return ReportPages.RootPage(Leagues);
+						Respond(context, ReportPages.RootPage(Leagues));
 				}
 				else if (lastPart.EndsWith(".html"))
-					return HtmlResponse(request.RawUrl, lastPart, holder);
+					Respond(context, HtmlResponse(context, lastPart, holder));
 				else if (lastPart.EndsWith(".png"))
-					return ImageResponse(request.RawUrl, lastPart, holder);
+					ImageResponse(context, lastPart, holder);
 				else
-					return RestResponse(request);
+					Respond(context, RestResponse(request));
 			}
 			catch (Exception ex)
 			{
-				return "<html><body>\n" + ex.Message + "\n<br/><br/>\n" + ex.StackTrace + "</body></html>";
+				Respond(context, "<html><body>\n" + ex.Message + "\n<br/><br/>\n" + ex.StackTrace + "</body></html>");
+				context.Response.StatusCode = 500;
+				context.Response.StatusDescription = ex.Message + "\n<br/><br/>\n" + ex.StackTrace;
 				throw;
 			}
 		}
 
-		string HtmlResponse(string rawUrl, string lastPart, Holder holder)
+		/// <summary>Take a string response and stuff it into an HttpListenerContext.Response.</summary>
+		void Respond(HttpListenerContext context, string s)
 		{
+			byte[] buf = Encoding.UTF8.GetBytes(s);
+			context.Response.ContentLength64 = buf.Length;
+			context.Response.OutputStream.Write(buf, 0, buf.Length);
+		}
+
+		string HtmlResponse(HttpListenerContext context, string lastPart, Holder holder)
+		{
+			string rawUrl = context.Request.RawUrl;
 			if (lastPart == "now.html")
 				return NowPage();
 			else if (lastPart == "scoreboard.html")
-				return ScoreboardPage(holder?.League);
+				return ScoreboardPage();
 			else if (holder == null)
 				return string.Format(CultureInfo.InvariantCulture, "<html><body>Couldn't find a league key in \"<br>{0}\". Try <a href=\"now.html\">Now Playing</a> instead.</body></html>", rawUrl);
 			else if (lastPart == "index.html")
 				return ReportPages.OverviewPage(holder, false, OutputFormat.Svg);
-			else if (lastPart.StartsWith("game", StringComparison.OrdinalIgnoreCase))
+			else if (lastPart.StartsWith("games", StringComparison.OrdinalIgnoreCase))
+			{
+				DateTime dt = DateTime.ParseExact(lastPart.Substring(5, 8), "yyyyMMdd", CultureInfo.InvariantCulture);
+				Game game = holder.League.AllGames.Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
+				if (game == null)
+					return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid game: <br>{0}</body></html>", rawUrl);
+				else
+					return ReportPages.GamePage(holder.League, game);
+			}
+			else if (lastPart.StartsWith("game2", StringComparison.OrdinalIgnoreCase))
 			{
 				DateTime dt = DateTime.ParseExact(lastPart.Substring(4, 12), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
 				Game game = holder.League.AllGames.Find(x => x.Time.Subtract(dt).TotalSeconds < 60);
@@ -409,17 +464,29 @@ xhr.send();
 				return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid path: <br>{0}</body></html>", rawUrl);
 		}
 
-		string ImageResponse(string rawUrl, string lastPart, Holder holder)
+		/// <summary>Put the specified image into an HttpListenerContext.Response.</summary>
+		void ImageResponse(HttpListenerContext context, string lastPart, Holder holder)
 		{
-			var sb = new StringBuilder();
+			if (holder == null)
+			{
+				context.Response.StatusCode = 404;
+				context.Response.StatusDescription = "That league is not currently open in Torn.";
+				return;
+			}
+
 			string imagePath = Path.Combine(ExportFolder, holder.Key, lastPart);
 			if (File.Exists(imagePath))
 			{
-				byte[] fileBytes = File.ReadAllBytes(imagePath);
-				foreach (byte b in fileBytes)
-					sb.Append(b);
+				context.Response.Headers.Set("Content-Type", "image/png");
+				byte[] buf = File.ReadAllBytes(imagePath);
+				context.Response.ContentLength64 = buf.Length;
+				context.Response.OutputStream.Write(buf, 0, buf.Length);
 			}
-			return sb.ToString();
+			else
+			{
+				context.Response.StatusCode = 404;
+				context.Response.StatusDescription = "Image '" + lastPart + "' not found in league '" + holder.Key + "'.";
+			}
 		}
 
 		private string RestGame(string gameTime)
@@ -465,7 +532,8 @@ xhr.send();
 			return JsonSerializer.Serialize<List<LaserGamePlayer>>(Players(mask));
 		}
 
-		string XmlHttpRequestScoreBoard()
+		/// <summary>Return an HTML fragment to be displayed within the 'scoreboard' div on scoreboard.html.</summary>
+		string XmlHttpRequestScoreBoard(HttpListenerRequest request)  // Get parameters from InputStream, QueryString, ContentType, or Headers.
 		{
 			if (MostRecentGame == null)
 				Update();
@@ -473,24 +541,35 @@ xhr.send();
 			if (MostRecentGame == null)
 				return "No game found.";
 
+			// X-Previous is the game the scoreboard is already displaying when it sends us this request. We don't want to respond to the request until we have a new game for it to show.
+			// (If there's no X-Previous header, request.Headers["X-Previous"] returns the null string.)
+			while (request != null && JsonSerializer.Serialize<DateTime>(MostRecentGame.Time) == request.Headers["X-Previous"])
+				System.Threading.Thread.Sleep(1000);
+
 			ZoomReports reports = new ZoomReports();
 			reports.Colors.BackgroundColor = Color.Empty;
 			reports.Colors.OddColor = Color.Empty;
 			reports.Add(Reports.OneGame(MostRecentHolder?.League, MostRecentGame));
 
-			if (NextGame != null)
+			return
+				reports[0].ToSvg() + NextGameHtml();
+		}
+
+		string NextGameHtml()
+		{
+			if (NextGame == null)
+				return null;
+
+			StringBuilder sb = new StringBuilder();
 			{
-				StringBuilder sb = new StringBuilder();
 				sb.Append("</div><br/><a href=\"fixture.html\">Up Next</a>:");
 
 				foreach (var ft in NextGame.Teams)
 					sb.Append(ft.Key.LeagueTeam.Name + "; ");
 				sb.Length -= 2;
 				sb.Append("<div>");
-				reports.Add(new ZoomHtmlInclusion(sb.ToString()));
 			}
-
-			return reports[0].ToSvg();
+			return sb.ToString();
 		}
 
 		string RestResponse(HttpListenerRequest request)
@@ -498,6 +577,12 @@ xhr.send();
 			string rawUrl = request.RawUrl;
 			if (rawUrl.EndsWith("elapsed"))
 				return JsonSerializer.Serialize<int>(Elapsed());
+			if (rawUrl.EndsWith("latest"))
+			{
+				if (MostRecentGame == null)
+					Update();
+				return JsonSerializer.Serialize<DateTime>(MostRecentGame == null ? default : MostRecentGame.Time);
+			}
 			else if (rawUrl.EndsWith("games.json"))
 				return RestGames();
 			else if (rawUrl.Contains("game2"))
@@ -505,7 +590,7 @@ xhr.send();
 			else if (rawUrl.EndsWith("players.json"))
 				return RestPlayers("");  // return the list of all players available from this lasergame server.
 			else if (rawUrl.EndsWith("scoreboard"))
-				return XmlHttpRequestScoreBoard();
+				return XmlHttpRequestScoreBoard(request);
 			else
 				return string.Format(CultureInfo.InvariantCulture, "<html><body>Invalid path: <br>{0}</body></html>", rawUrl);
 		}
@@ -585,7 +670,7 @@ xhr.send();
 		}
 
 		public void ExportGamesToJSON(string path, List<ServerGame> games, ShowProgress progress = null)
-        {
+		{
 			if (path != null)
 			{
 				Progress myProgress = new Progress() { Denominator = games.Count + 2, ShowProgress = progress };
@@ -609,8 +694,8 @@ xhr.send();
 					{
 						JObject obj = JObject.FromObject(ev);
 
-                        string playerAlias = game.Players.Find(p => p.ServerPlayerId == ev.ServerPlayerId)?.Alias;
-                        string otherPlayerAlias = game.Players.Find(p => p.ServerPlayerId == ev.OtherPlayer)?.Alias;
+						string playerAlias = game.Players.Find(p => p.ServerPlayerId == ev.ServerPlayerId)?.Alias;
+						string otherPlayerAlias = game.Players.Find(p => p.ServerPlayerId == ev.OtherPlayer)?.Alias;
 
 						obj.Add(new JProperty("alias", playerAlias));
 						obj.Add(new JProperty("otherPlayerAlias", otherPlayerAlias));
@@ -618,7 +703,7 @@ xhr.send();
 						eventsJSON.Add(obj);
 					}
 					foreach (ServerPlayer player in sortedPlayers)
-                    {
+					{
 						JObject obj = JObject.FromObject(player);
 						playersJSON.Add(obj);
 					}
@@ -672,8 +757,12 @@ xhr.send();
 				Progress myProgress = new Progress() { Denominator = selected.Count * 3 + 1, ShowProgress = progress };
 
 				if (selected.Any())
+				{
+					Directory.CreateDirectory(path);
+
 					using (StreamWriter sw = File.CreateText(Path.Combine(path, "index." + selected[0].ReportTemplates.OutputFormat.ToExtension())))
 						sw.Write(ReportPages.RootPage(selected));
+				}
 				myProgress.Increment("Root page exported.");
 
 				foreach (Holder holder in selected)
@@ -698,84 +787,98 @@ xhr.send();
 			}
 		}
 
+		/// <summary>Generate game reports for every game in a league.</summary>
 		static void ExportGames(Holder holder, string path, Progress progress)
 		{
-			League league = holder.League;
-
-			var dates = league.AllGames.Select(g => g.Time.Date).Distinct().ToList();
+			var dates = holder.League.AllGames.Select(g => g.Time.Date).Distinct().ToList();
 			foreach (var date in dates)
 			{
-				string fileName = Path.Combine(path, holder.Key, "games" + date.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + 
-                                                      "." + holder.ReportTemplates.OutputFormat.ToExtension());
+				ExportDay(holder, path, date);
 
-				var dayGames = league.AllGames.Where(g => g.Time.Date == date);
-				if (dayGames.Any(g => !g.Reported) || !File.Exists(fileName))  // Some of the games for this day are not marked as reported. Report on them.
+				progress.Advance(1.0 / dates.Count, "Exported games for " + date.ToShortDateString());
+			}
+		}
+
+		/// <summary>Generate game reports for a single day and write them to disk, but only if necessary.</summary>
+		static void ExportDay(Holder holder, string path, DateTime day)
+		{
+			League league = holder.League;
+			string fileName = Path.Combine(path, holder.Key, "games" + day.ToString("yyyyMMdd", CultureInfo.InvariantCulture) +
+																		"." + holder.ReportTemplates.OutputFormat.ToExtension());
+
+			var dayGames = league.AllGames.Where(g => g.Time.Date == day);
+			if (dayGames.Any(g => !g.Reported) || !File.Exists(fileName))  // Some of the games for this day are not marked as reported, or the file we're going to report to doesn't exist. So let's report.
+			{
+				ZoomReports reports = new ZoomReports(league.Title + " games on " + day.ToShortDateString());
+				reports.Colors.BackgroundColor = Color.Empty;
+				reports.Colors.OddColor = Color.Empty;
+				league.AllGames.Sort();
+				bool anyDetailed = false;
+
+				var rt = new ReportTemplate() { From = day, To = day.AddSeconds(86399) };
+				reports.Add(Reports.GamesToc(league, false, rt));
+				string gameTitle = "";
+
+				foreach (Game game in dayGames)
 				{
-					ZoomReports reports = new ZoomReports(league.Title + " games on " + date.ToShortDateString());
-					reports.Colors.BackgroundColor = Color.Empty;
-					reports.Colors.OddColor = Color.Empty;
-					league.AllGames.Sort();
-					bool detailed = false;
-
-					var rt = new ReportTemplate() { From = date, To = date.AddSeconds(86399) };
-					reports.Add(Reports.GamesToc(league, false, rt));
-					string gameTitle = "";
-
-					foreach (Game game in dayGames)
+					if (gameTitle != game.Title)
 					{
-						if (gameTitle != game.Title)
-						{
-							reports.Add(new ZoomSeparator());
-							gameTitle = game.Title;
-						}
-
-						reports.Add(new ZoomHtmlInclusion("<a name=\"game" + game.Time.ToString("HHmm", CultureInfo.InvariantCulture) + "\"><div style=\"display: flex; flex-flow: row wrap; justify-content: space-around; \">\n"));
-						reports.Add(Reports.OneGame(league, game));
-						if (game.ServerGame != null && game.ServerGame.Events.Any() && !game.ServerGame.InProgress)
-						{
-							string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
-							string imagePath = Path.Combine(path, holder.Key, imageName);
-							if (!game.Reported || !File.Exists(imagePath))
-							{
-								var bitmap = Reports.GameWorm(league, game, true);
-								if (bitmap != null && (bitmap.Height > 1 || !File.Exists(imagePath)))
-									bitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
-							}
-							reports.Add(new ZoomHtmlInclusion("\n<div><p> </p></div><div><p> </p></div>\n<div><img src=\"" + imageName + "\"></div></div>\n"));
-							game.Reported = true;
-							detailed = true;
-						}
+						reports.Add(new ZoomSeparator());
+						gameTitle = game.Title;
 					}
-					if (detailed)
+
+					bool thisDetailed = game.ServerGame != null && game.ServerGame.Events.Any() && !game.ServerGame.InProgress;
+
+					reports.Add(new ZoomHtmlInclusion("<a name=\"game" + game.Time.ToString("HHmm", CultureInfo.InvariantCulture) + "\">" +
+						(thisDetailed ? "<div style =\"display: flex; flex-flow: row wrap; justify-content: space-around; \">\n" : "\n")));
+
+					reports.Add(Reports.OneGame(league, game));
+
+					if (thisDetailed)
 					{
-						var eventsUsed = dayGames.Where(g => g.ServerGame != null).SelectMany(g => g.ServerGame.Events.Select(e => e.Event_Type)).Distinct();
-						var sb = new StringBuilder("</div>\n<p>");
-						if (eventsUsed.Contains(30) || eventsUsed.Contains(31)) sb.Append("\u25cb and \u2b24 are hit and destroyed bases.<br/>");
-						if (eventsUsed.Contains(1403) || eventsUsed.Contains(1404)) sb.Append("\U0001f61e and \U0001f620 are one- and two-shot denied.<br/>");
-						if (eventsUsed.Contains(1401) || eventsUsed.Contains(1402)) sb.Append("\u2300 and \u29bb are denied another player.<br/>");
-						if (eventsUsed.Contains(28)) sb.Append("\U0001f7e8 is warning (yellow card). ");
-						if (eventsUsed.Contains(28) && !eventsUsed.Contains(29)) sb.Append("<br/>");
-						if (eventsUsed.Contains(29)) sb.Append("\U0001f7e5 is termination (red card).<br/>");
-						if (eventsUsed.Contains(32)) sb.Append("\U0001f480 is player eliminated.<br/>");
-						if (eventsUsed.Contains(33) && !eventsUsed.Contains(34) && !eventsUsed.Any(t => t >= 37 && t <= 46)) sb.Append("! is hit by base, or player self-denied.<br/>");
-						if (eventsUsed.Contains(34) || eventsUsed.Any(t => t >= 37 && t <= 46)) sb.Append("! is hit by base or mine, or player self-denied, or player tagged target.<br/>");
-						sb.Append("\u00B7 shows each minute elapsed.<br/>Tags+ includes shots on bases and teammates.</p>\n");
-						sb.Append(@"<p>""Worm"" charts show coloured lines for each team. Vertical dashed lines show time in minutes. <br/>
+						string imageName = "score" + game.Time.ToString("yyyyMMdd_HHmm", CultureInfo.InvariantCulture) + ".png";
+						string imagePath = Path.Combine(path, holder.Key, imageName);
+						if (!game.Reported || !File.Exists(imagePath))
+						{
+							var bitmap = Reports.GameWorm(league, game, true);
+							if (bitmap != null && (bitmap.Height > 1 || !File.Exists(imagePath)))
+								bitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+						}
+						reports.Add(new ZoomHtmlInclusion("\n<div><p> </p></div><div><p> </p></div>\n<div><img src=\"" + imageName + "\"></div></div>\n"));
+						game.Reported = true;
+						anyDetailed = true;
+					}
+
+					reports.Add(new ZoomHtmlInclusion("</a>"));
+				}
+
+				if (anyDetailed)
+				{
+					var eventsUsed = dayGames.Where(g => g.ServerGame != null).SelectMany(g => g.ServerGame.Events.Select(e => e.Event_Type)).Distinct();
+					var sb = new StringBuilder("</div>\n<p>");
+					if (eventsUsed.Contains(30) || eventsUsed.Contains(31)) sb.Append("\u25cb and \u2b24 are hit and destroyed bases.<br/>");
+					if (eventsUsed.Contains(1403) || eventsUsed.Contains(1404)) sb.Append("\U0001f61e and \U0001f620 are one- and two-shot denied.<br/>");
+					if (eventsUsed.Contains(1401) || eventsUsed.Contains(1402)) sb.Append("\u2300 and \u29bb are denied another player.<br/>");
+					if (eventsUsed.Contains(28)) sb.Append("\U0001f7e8 is warning (yellow card). ");
+					if (eventsUsed.Contains(28) && !eventsUsed.Contains(29)) sb.Append("<br/>");
+					if (eventsUsed.Contains(29)) sb.Append("\U0001f7e5 is termination (red card).<br/>");
+					if (eventsUsed.Contains(32)) sb.Append("\U0001f480 is player eliminated.<br/>");
+					if (eventsUsed.Contains(33) && !eventsUsed.Contains(34) && !eventsUsed.Any(t => t >= 37 && t <= 46)) sb.Append("! is hit by base, or player self-denied.<br/>");
+					if (eventsUsed.Contains(34) || eventsUsed.Any(t => t >= 37 && t <= 46)) sb.Append("! is hit by base or mine, or player self-denied, or player tagged target.<br/>");
+					sb.Append("\u00B7 shows each minute elapsed.<br/>Tags+ includes shots on bases and teammates.</p>\n");
+					sb.Append(@"<p>""Worm"" charts show coloured lines for each team. Vertical dashed lines show time in minutes. <br/>
 Sloped dashed lines show lines of constant score: 0 points, 10K points, etc. The slope of these lines shows the average rate of scoring of ""field points"" 
 during the game. Field points are points not derived from shooting bases, getting penalised by a referee, etc. A team whose score line is horizontal is 
 scoring points  at the average field pointing rate for the game. <br/>
 Base hits and destroys are shown with a mark in the colour of the base hit. Base destroys have the alias of the player destroying the base next to them.</p>
 <div>");
-						reports.Add(new ZoomHtmlInclusion(sb.ToString()));
-					}
-
-					reports.Add(new ZoomHtmlInclusion("</div><a href=\"index.html\">Index</a><div>"));
-					if (reports.Count > 1)  // There were games this day.
-						using (StreamWriter sw = File.CreateText(fileName))
-							sw.Write(reports.ToOutput(holder.ReportTemplates.OutputFormat));
-
-					progress.Advance(1.0 / dates.Count, "Exported games for " + date.ToShortDateString());
+					reports.Add(new ZoomHtmlInclusion(sb.ToString()));
 				}
+
+				reports.Add(new ZoomHtmlInclusion("</div><a href=\"index.html\">Index</a><div>"));
+				if (reports.Count > 1)  // There were games this day.
+					using (StreamWriter sw = File.CreateText(fileName))
+						sw.Write(reports.ToOutput(holder.ReportTemplates.OutputFormat));
 			}
 		}
 
@@ -877,7 +980,7 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 						}
 
 						FileInfo[] files = di.GetFiles("*.html");
-						
+
 						for (int i = 0; i < files.Count(); i++)
 						{
 							UploadFile(client, url + uploadDir, Path.Combine(localPath, key), files[i].Name);

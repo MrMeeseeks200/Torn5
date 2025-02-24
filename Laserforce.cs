@@ -74,7 +74,7 @@ namespace Torn
 		}
 
 		private List<ServerGame> FetchGames(string sql)
-        {
+		{
 			List<ServerGame> games = new List<ServerGame>();
 
 			Console.WriteLine(Connected);
@@ -325,8 +325,8 @@ namespace Torn
 							List<string> otherPlayerScoreEvent = lines[indexOfEvent - 1].Split('\t').ToList();
 
 							int playerScore = Int32.Parse(playerScoreEvent[4]);
-							int otherPlayerScore = 0;
 
+							int otherPlayerScore = 0;
 							Int32.TryParse(otherPlayerScoreEvent[4], out otherPlayerScore);
 
 							ServerPlayer player = game.Players.Find(p => p.ServerPlayerId == oneEvent.ServerPlayerId) ?? new ServerPlayer();

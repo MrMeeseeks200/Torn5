@@ -171,7 +171,7 @@ namespace Torn.Report
 			foreach (Colour c in coloursUsed)
 				report.AddColumn(new ZColumn(c.ToString(), ZAlignment.Integer));
 
-			int maxRank = games.Max(g => g.Teams.Count);
+			int maxRank = games.Any() ? games.Max(g => g.Teams.Count) : 0;
 
 			for (int rank = 0; rank < maxRank; rank++)
 			{
@@ -439,7 +439,7 @@ namespace Torn.Report
 
 			FixtureTeams sortedTeams = new FixtureTeams();
 
-				foreach (var fg in fixture.Games)
+			foreach (var fg in fixture.Games)
 			{
 				ZRow row = new ZRow();
 
@@ -1200,6 +1200,7 @@ namespace Torn.Report
 
 			List<TeamLadderEntry> previousLadder = null;
 			string previousGroupName = "";
+			ZColumn teamColumn = null;
 			for (int group = 0; group < groups.Count(); group++)  // for each group of games
 			{
 				string groupName = groups[group]?.ToLower() ?? "";
@@ -1214,7 +1215,7 @@ namespace Torn.Report
 				var thisGroupGames = games.Where(g => g.Title == groups[group]).ToList();
 				groupGames.AddRange(thisGroupGames);
 
-				report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
+				teamColumn = report.AddColumn(new ZColumn("Team", ZAlignment.Left, groups[group]));
 				if (isPoints)
 					report.AddColumn(new ZColumn("Points", ZAlignment.Right, groups[group]));
 
@@ -1282,7 +1283,7 @@ namespace Torn.Report
 					for (int team = 0; team < offset; team++)
 						AddBlankCells(report.Rows[team], columnsPerGroup);
 
-					for (int t = 0; t < ladder.Count - offset; t++)
+					for (int t = 0; t < ladder.Count; t++)
 					{
 						var entry = ladder[t];
 						var team = entry.Team;
@@ -1341,9 +1342,13 @@ namespace Torn.Report
 			}
 
 			if (rt.Settings.Contains("Description"))
-				report.Description = "This report shows each team's progress through the tournament. Between each of the " + groups.Count() + 
-					" rounds, follow a team's rise or fall by following their arrow(s). To see a team's final placing, look for the right-most mention of their name; e.g. " + 
-					report.Rows[0][report.Rows[0].Count - (league.IsPoints() ? 4 : 3)].Text + " placed 1st.";
+			{
+				report.Description = "This report shows each team's progress through the tournament. Between each of the " + groups.Count() +
+					" rounds, follow a team's rise or fall by following their arrow(s). To see a team's final placing, look for the right-most mention of their name";
+				int teamIndex = report.Columns.IndexOf(teamColumn);
+				if (report.Rows[0].Valid(teamIndex))
+					report.Description += "; e.g. " + report.Rows[0][teamIndex].Text + " placed 1st.";
+			}
 
 			return report;
 		}
@@ -2470,8 +2475,9 @@ namespace Torn.Report
 				MultiColumnOK = true
 			};
 
-			if (rt.Drops != null && rt.Drops.HasDrops())
-				report.AddColumn(new ZColumn("Dropped", ZAlignment.Integer));
+			report.Columns.First().Rotate = true;
+			report.Columns.First(c => c.Text == "Games").Rotate = true;
+			report.Columns.First(c => c.Text == "Dropped").Rotate = true;
 
 			double bestScoreRatio = 0;
 			string bestScoreRatioText = "";
