@@ -401,6 +401,7 @@
             0,
             0,
             0});
+			this.numericTeams.ValueChanged += new System.EventHandler(this.RefreshFinals);
 			// 
 			// label1
 			// 

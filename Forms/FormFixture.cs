@@ -741,6 +741,7 @@ namespace Torn.UI
 					}
 				}
 				loading = false;
+				TeamCheckedChanged(null, null);
 			}
 		}
 
@@ -778,7 +779,6 @@ namespace Torn.UI
 		{
 			if (loading)
 			{
-				frameFinals1.Teams = Holder.League.GetTeamLadder();
 				return;
 			}
 

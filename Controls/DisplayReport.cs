@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Windows.Forms;
 using Zoom;
 
@@ -30,18 +31,23 @@ namespace Torn5.Controls
 			RedrawTimer.Tick += RedrawTimerTick;
 		}
 
+		Size size = new Size(1, 1);
 		private void DisplayReportResize(object sender, EventArgs e)
 		{
-			RedrawTimer.Enabled = true;  // If the control has resized larger, we want to redraw at higher res. But we don't weant to redraw _lots_ of times, so only do it once per second. If control has resized smaller: meh. Redraw it anyway.
+			if (this.Size.Width > size.Width || this.Size.Height > size.Height)
+				RedrawTimer.Enabled = true;  // If the control has resized larger, we want to redraw at higher res. But we don't weant to redraw _lots_ of times, so only do it once per second.
+
+			size = this.Size;
 		}
+
 		private void RedrawTimerTick(object sender, EventArgs e)
 		{
+			RedrawTimer.Enabled = false;
+
 			if (Report == null)
 				BackgroundImage = null;
-			else
+			else if (!this.DesignMode)
 				BackgroundImage = Report.ToBitmap(Width, Height);
-
-			RedrawTimer.Enabled = false;
 		}
 
 		public void Redraw()

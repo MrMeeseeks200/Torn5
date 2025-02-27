@@ -825,6 +825,9 @@ namespace Torn.UI
 			// 
 			// frameFinals1
 			// 
+			this.frameFinals1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
 			this.frameFinals1.Games = null;
 			this.frameFinals1.Location = new System.Drawing.Point(165, 3);
 			this.frameFinals1.Name = "frameFinals1";
@@ -969,5 +972,5 @@ namespace Torn.UI
         private System.Windows.Forms.GroupBox fixtureTeamsList;
         private System.Windows.Forms.Label label26;
         private System.Windows.Forms.NumericUpDown backToBackPenalty;
-    }
+	}
 }

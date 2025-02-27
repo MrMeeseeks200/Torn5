@@ -118,7 +118,8 @@ namespace Torn
 		void GrandFinals(List<ZColumn> games)
 		{
 			var colours = new List<Colour>() { Colour.Red, Colour.Blue, Colour.Green, Colour.Yellow, Colour.Cyan, Colour.Pink, Colour.Purple, Colour.Orange };  // Colours; hardest-to-distinguish last, so they get used the least.
-			var coloursUsed = Games.SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct().OrderBy(c => colours.IndexOf(c)).ToList();  // All the colours that were actually used in games in this league, hardest-to-distinguish last.
+			var coloursUsed = Games == null || !Games.Any() ? new List<Colour>() { Colour.Red, Colour.Blue, Colour.Green } :  // If no historical games, use default finals colours.
+				Games.SelectMany(g => g.Teams.Select(t => t.Colour)).Distinct().OrderBy(c => colours.IndexOf(c)).ToList();    // All the colours that were actually used in games in this league, hardest-to-distinguish last.
 
 			for (int i = 0; i < TeamsPerGame; i++)
 			{
@@ -129,7 +130,8 @@ namespace Torn
 				for (int j = 0; j < TeamsPerGame; j++)
 				{
 					int colourNum = (j - i + coloursUsed.Count) % coloursUsed.Count;
-					Report.Rows[i].Add(new ZCell(" ", coloursUsed[colourNum].ToColor()) { Border = Color.Black });
+					if (Report.Rows.Valid(i))
+						Report.Rows[i].Add(new ZCell(" ", coloursUsed[colourNum].ToColor()) { Border = Color.Black });
 				}
 			}
 		}
@@ -260,12 +262,12 @@ namespace Torn
 			Report.Description = "You may wish to rearrange games to avoid back-to-backs where teams play twice in a row.";
 		}
 
-		public static ZoomReport Ascension(List<LeagueTeam> teams, Games games, int teamsPerGame, int teamsToCut, int tracks, int freeRides)
+		public static ZoomReport Ascension(List<LeagueTeam> teams, Games games, int numTeams, int teamsPerGame, int teamsToCut, int tracks, int freeRides)
 		{
 			var f = new Finals
 			{
 				Games = games,
-				NumTeams = teams.Count,
+				NumTeams = numTeams,
 				TeamsPerGame = teamsPerGame,
 				TeamsSentDown = teamsToCut,
 				Tracks = tracks,
@@ -279,15 +281,15 @@ namespace Torn
 			report.Columns.Add(new ZColumn("Teams", ZAlignment.Left));
 
 			// Add rows to the report.
-			for (int row = 0; row < teams.Count; row++)
+			for (int row = 0; row < numTeams; row++)
 			{
 				report.Rows.Add(new ZRow());
-				report.Rows[row].AddCell(new ZCell(teams[row].Name));
+				report.Rows[row].AddCell(new ZCell(teams != null && teams.Valid(row) ? teams[row].Name : "Team " + (row + 1).ToString()));
 			}
 
-			if (tracks == 2 && teams.Count > 4)
+			if (tracks == 2 && numTeams > 4)
 				f.TwoTrack();
-			else if (tracks == 3 && teams.Count > 4)
+			else if (tracks == 3 && numTeams > 4)
 				f.ThreeTrack();
 			else
 				f.GeneralAscension();

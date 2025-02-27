@@ -18,9 +18,8 @@ namespace Torn5.Controls
 			set
 			{
 				teams = value;
-				if (teams != null)
+				if (teams != null && teams.Count > 0)
 					numericTeams.Value = teams.Count;
-				UpdateFinalsFixture();
 			}
 		}
 
@@ -32,7 +31,7 @@ namespace Torn5.Controls
 			set
 			{
 				games = value;
-				if (games != null)
+				if (games != null && games.Count > 0)
 				{
 					numericTeamsPerGame.Value = (decimal)Math.Round(games.Average(g => g.Teams.Count));
 				}
@@ -48,13 +47,8 @@ namespace Torn5.Controls
 		{
 			labelTeamsToSendUp.Text = "Teams to send up from each game: " + (numericTeamsPerGame.Value - numericTeamsToCut.Value).ToString();
 
-			UpdateFinalsFixture();
-		}
-
-		private void UpdateFinalsFixture()
-		{
-			if (teams != null && games != null)
-				displayReportFinals.Report = Finals.Ascension(teams, games, (int)numericTeamsPerGame.Value, (int)numericTeamsToCut.Value, (int)numericTracks.Value, (int)numericFreeRides.Value);
+			if (numericTeams.Value > 0)
+				displayReportFinals.Report = Finals.Ascension(teams, games, (int)numericTeams.Value, (int)numericTeamsPerGame.Value, (int)numericTeamsToCut.Value, (int)numericTracks.Value, (int)numericFreeRides.Value);
 		}
 
 		private void NumericTeamsPerGameValueChanged(object sender, EventArgs e)
