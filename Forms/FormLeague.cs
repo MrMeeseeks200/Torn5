@@ -203,29 +203,40 @@ namespace Torn.UI
 			Text = "Torn -- " + League.Title;
 		}
 
-		void ButtonCopyFromLeagueClick(object sender, EventArgs e)
+		/// <summary>Import team names from clipboard; one team name per line of text.</summary>
+		void ButtonPasteTeamsClick(object sender, EventArgs e)
 		{
-			
+			string clip = Clipboard.GetText();
+			if (string.IsNullOrEmpty(clip))
+				return;
+
+			string[] teams = clip.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+			foreach (var name in teams)
+				if (!string.IsNullOrEmpty(name) && !League.Teams.Any(t => t.Name == name))
+					AddTeam(name);
 		}
 
 		void ButtonAddTeamClick(object sender, EventArgs e)
 		{
 			string name = null;
 			if (InputDialog.ConditionalInput("Add Team", "Choose a name for the new team", ref name))
-			{
-				var team = new LeagueTeam
-				{
-					Name = name
-				};
-				League.AddTeam(team);
+				AddTeam(name);
+		}
 
-				var node = new TreeNode(name)
-				{
-					Tag = team
-				};
-				treeView1.Nodes.Add(node);
-				treeView1.SelectedNode = node;
-			}
+		private void AddTeam(string name)
+		{
+			var team = new LeagueTeam
+			{
+				Name = name
+			};
+			League.AddTeam(team);
+
+			var node = new TreeNode(name)
+			{
+				Tag = team
+			};
+			treeView1.Nodes.Add(node);
+			treeView1.SelectedNode = node;
 		}
 
 		void ButtonDeleteTeamClick(object sender, EventArgs e)

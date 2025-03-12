@@ -37,7 +37,7 @@ namespace Torn.UI
             this.deletePlayerMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reIDPlayerMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.buttonCopyFromLeague = new System.Windows.Forms.Button();
+            this.buttonPasteTeams = new System.Windows.Forms.Button();
             this.buttonRenameLeague = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.buttonRenameTeam = new System.Windows.Forms.Button();
@@ -50,6 +50,9 @@ namespace Torn.UI
             this.panelRight = new System.Windows.Forms.Panel();
             this.temTab = new System.Windows.Forms.TabControl();
             this.leaguePage = new System.Windows.Forms.TabPage();
+            this.halfVps = new System.Windows.Forms.CheckBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.zeroedTieBreak = new System.Windows.Forms.CheckBox();
             this.sweepBonus = new System.Windows.Forms.NumericUpDown();
             this.label10 = new System.Windows.Forms.Label();
             this.zeroVps = new System.Windows.Forms.CheckBox();
@@ -104,9 +107,6 @@ namespace Torn.UI
             this.redTermValue = new System.Windows.Forms.NumericUpDown();
             this.buttonOK = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
-            this.zeroedTieBreak = new System.Windows.Forms.CheckBox();
-            this.label11 = new System.Windows.Forms.Label();
-            this.halfVps = new System.Windows.Forms.CheckBox();
             this.contextMenuStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -189,31 +189,30 @@ namespace Torn.UI
             // groupBox1
             // 
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBox1.Controls.Add(this.buttonCopyFromLeague);
+            this.groupBox1.Controls.Add(this.buttonPasteTeams);
             this.groupBox1.Controls.Add(this.buttonRenameLeague);
             this.groupBox1.Location = new System.Drawing.Point(310, 12);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(87, 106);
+            this.groupBox1.Size = new System.Drawing.Size(100, 106);
             this.groupBox1.TabIndex = 1;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "League";
             // 
-            // buttonCopyFromLeague
+            // buttonPasteTeams
             // 
-            this.buttonCopyFromLeague.Enabled = false;
-            this.buttonCopyFromLeague.Location = new System.Drawing.Point(6, 48);
-            this.buttonCopyFromLeague.Name = "buttonCopyFromLeague";
-            this.buttonCopyFromLeague.Size = new System.Drawing.Size(75, 23);
-            this.buttonCopyFromLeague.TabIndex = 1;
-            this.buttonCopyFromLeague.Text = "Copy from";
-            this.buttonCopyFromLeague.UseVisualStyleBackColor = true;
-            this.buttonCopyFromLeague.Click += new System.EventHandler(this.ButtonCopyFromLeagueClick);
+            this.buttonPasteTeams.Location = new System.Drawing.Point(6, 54);
+            this.buttonPasteTeams.Name = "buttonPasteTeams";
+            this.buttonPasteTeams.Size = new System.Drawing.Size(88, 46);
+            this.buttonPasteTeams.TabIndex = 1;
+            this.buttonPasteTeams.Text = "Paste Teams\n(one per line)";
+            this.buttonPasteTeams.UseVisualStyleBackColor = true;
+            this.buttonPasteTeams.Click += new System.EventHandler(this.ButtonPasteTeamsClick);
             // 
             // buttonRenameLeague
             // 
             this.buttonRenameLeague.Location = new System.Drawing.Point(6, 19);
             this.buttonRenameLeague.Name = "buttonRenameLeague";
-            this.buttonRenameLeague.Size = new System.Drawing.Size(75, 23);
+            this.buttonRenameLeague.Size = new System.Drawing.Size(88, 23);
             this.buttonRenameLeague.TabIndex = 0;
             this.buttonRenameLeague.Text = "Rename";
             this.buttonRenameLeague.UseVisualStyleBackColor = true;
@@ -225,9 +224,9 @@ namespace Torn.UI
             this.groupBox2.Controls.Add(this.buttonRenameTeam);
             this.groupBox2.Controls.Add(this.buttonDeleteTeam);
             this.groupBox2.Controls.Add(this.buttonAddTeam);
-            this.groupBox2.Location = new System.Drawing.Point(433, 12);
+            this.groupBox2.Location = new System.Drawing.Point(425, 12);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(87, 106);
+            this.groupBox2.Size = new System.Drawing.Size(100, 106);
             this.groupBox2.TabIndex = 2;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Team";
@@ -236,7 +235,7 @@ namespace Torn.UI
             // 
             this.buttonRenameTeam.Location = new System.Drawing.Point(6, 77);
             this.buttonRenameTeam.Name = "buttonRenameTeam";
-            this.buttonRenameTeam.Size = new System.Drawing.Size(75, 23);
+            this.buttonRenameTeam.Size = new System.Drawing.Size(88, 23);
             this.buttonRenameTeam.TabIndex = 2;
             this.buttonRenameTeam.Text = "Rename";
             this.buttonRenameTeam.UseVisualStyleBackColor = true;
@@ -246,7 +245,7 @@ namespace Torn.UI
             // 
             this.buttonDeleteTeam.Location = new System.Drawing.Point(6, 48);
             this.buttonDeleteTeam.Name = "buttonDeleteTeam";
-            this.buttonDeleteTeam.Size = new System.Drawing.Size(75, 23);
+            this.buttonDeleteTeam.Size = new System.Drawing.Size(88, 23);
             this.buttonDeleteTeam.TabIndex = 1;
             this.buttonDeleteTeam.Text = "Delete";
             this.buttonDeleteTeam.UseVisualStyleBackColor = true;
@@ -256,7 +255,7 @@ namespace Torn.UI
             // 
             this.buttonAddTeam.Location = new System.Drawing.Point(6, 19);
             this.buttonAddTeam.Name = "buttonAddTeam";
-            this.buttonAddTeam.Size = new System.Drawing.Size(75, 23);
+            this.buttonAddTeam.Size = new System.Drawing.Size(88, 23);
             this.buttonAddTeam.TabIndex = 0;
             this.buttonAddTeam.Text = "Add";
             this.buttonAddTeam.UseVisualStyleBackColor = true;
@@ -268,9 +267,9 @@ namespace Torn.UI
             this.groupBox3.Controls.Add(this.buttonReIdPlayer);
             this.groupBox3.Controls.Add(this.buttonDeletePlayer);
             this.groupBox3.Controls.Add(this.buttonAddPlayer);
-            this.groupBox3.Location = new System.Drawing.Point(556, 12);
+            this.groupBox3.Location = new System.Drawing.Point(540, 12);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(87, 106);
+            this.groupBox3.Size = new System.Drawing.Size(100, 106);
             this.groupBox3.TabIndex = 3;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Player";
@@ -279,7 +278,7 @@ namespace Torn.UI
             // 
             this.buttonReIdPlayer.Location = new System.Drawing.Point(6, 77);
             this.buttonReIdPlayer.Name = "buttonReIdPlayer";
-            this.buttonReIdPlayer.Size = new System.Drawing.Size(75, 23);
+            this.buttonReIdPlayer.Size = new System.Drawing.Size(88, 23);
             this.buttonReIdPlayer.TabIndex = 2;
             this.buttonReIdPlayer.Text = "Re-ID";
             this.buttonReIdPlayer.UseVisualStyleBackColor = true;
@@ -289,7 +288,7 @@ namespace Torn.UI
             // 
             this.buttonDeletePlayer.Location = new System.Drawing.Point(6, 48);
             this.buttonDeletePlayer.Name = "buttonDeletePlayer";
-            this.buttonDeletePlayer.Size = new System.Drawing.Size(75, 23);
+            this.buttonDeletePlayer.Size = new System.Drawing.Size(88, 23);
             this.buttonDeletePlayer.TabIndex = 1;
             this.buttonDeletePlayer.Text = "Delete";
             this.buttonDeletePlayer.UseVisualStyleBackColor = true;
@@ -299,7 +298,7 @@ namespace Torn.UI
             // 
             this.buttonAddPlayer.Location = new System.Drawing.Point(6, 19);
             this.buttonAddPlayer.Name = "buttonAddPlayer";
-            this.buttonAddPlayer.Size = new System.Drawing.Size(75, 23);
+            this.buttonAddPlayer.Size = new System.Drawing.Size(88, 23);
             this.buttonAddPlayer.TabIndex = 0;
             this.buttonAddPlayer.Text = "Add...";
             this.buttonAddPlayer.UseVisualStyleBackColor = true;
@@ -328,7 +327,7 @@ namespace Torn.UI
             this.temTab.Name = "temTab";
             this.temTab.SelectedIndex = 0;
             this.temTab.Size = new System.Drawing.Size(337, 354);
-            this.temTab.TabIndex = 1;
+            this.temTab.TabIndex = 0;
             // 
             // leaguePage
             // 
@@ -354,6 +353,40 @@ namespace Torn.UI
             this.leaguePage.Text = "League";
             this.leaguePage.UseVisualStyleBackColor = true;
             // 
+            // halfVps
+            // 
+            this.halfVps.AutoSize = true;
+            this.halfVps.Enabled = false;
+            this.halfVps.Location = new System.Drawing.Point(175, 54);
+            this.halfVps.Name = "halfVps";
+            this.halfVps.Size = new System.Drawing.Size(146, 17);
+            this.halfVps.TabIndex = 7;
+            this.halfVps.Text = "Half VPs for Elimed Team";
+            this.halfVps.UseVisualStyleBackColor = true;
+            this.halfVps.CheckedChanged += new System.EventHandler(this.halfElimed_CheckedChanged);
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(117, 30);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(53, 13);
+            this.label11.TabIndex = 3;
+            this.label11.Text = "Tie-Break";
+            this.label11.Click += new System.EventHandler(this.label11_Click);
+            // 
+            // zeroedTieBreak
+            // 
+            this.zeroedTieBreak.AutoSize = true;
+            this.zeroedTieBreak.Enabled = false;
+            this.zeroedTieBreak.Location = new System.Drawing.Point(225, 29);
+            this.zeroedTieBreak.Name = "zeroedTieBreak";
+            this.zeroedTieBreak.Size = new System.Drawing.Size(83, 17);
+            this.zeroedTieBreak.TabIndex = 6;
+            this.zeroedTieBreak.Text = "Non-Zeroed";
+            this.zeroedTieBreak.UseVisualStyleBackColor = true;
+            this.zeroedTieBreak.CheckedChanged += new System.EventHandler(this.zeroedTieBreak_CheckedChanged);
+            // 
             // sweepBonus
             // 
             this.sweepBonus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
@@ -361,7 +394,7 @@ namespace Torn.UI
             this.sweepBonus.Location = new System.Drawing.Point(239, 248);
             this.sweepBonus.Name = "sweepBonus";
             this.sweepBonus.Size = new System.Drawing.Size(60, 20);
-            this.sweepBonus.TabIndex = 9;
+            this.sweepBonus.TabIndex = 12;
             this.sweepBonus.ValueChanged += new System.EventHandler(this.sweepBonus_ValueChanged);
             // 
             // label10
@@ -371,7 +404,7 @@ namespace Torn.UI
             this.label10.Location = new System.Drawing.Point(177, 250);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(56, 13);
-            this.label10.TabIndex = 8;
+            this.label10.TabIndex = 11;
             this.label10.Text = "For sweep";
             // 
             // zeroVps
@@ -381,7 +414,7 @@ namespace Torn.UI
             this.zeroVps.Location = new System.Drawing.Point(175, 77);
             this.zeroVps.Name = "zeroVps";
             this.zeroVps.Size = new System.Drawing.Size(144, 17);
-            this.zeroVps.TabIndex = 7;
+            this.zeroVps.TabIndex = 8;
             this.zeroVps.Text = "Zero VPs for elimed team";
             this.zeroVps.UseVisualStyleBackColor = true;
             this.zeroVps.CheckedChanged += new System.EventHandler(this.zeroVps_CheckedChanged);
@@ -392,7 +425,7 @@ namespace Torn.UI
             this.zeroElimed.Location = new System.Drawing.Point(175, 7);
             this.zeroElimed.Name = "zeroElimed";
             this.zeroElimed.Size = new System.Drawing.Size(158, 17);
-            this.zeroElimed.TabIndex = 6;
+            this.zeroElimed.TabIndex = 4;
             this.zeroElimed.Text = "Zero Score for elimed player";
             this.zeroElimed.UseVisualStyleBackColor = true;
             this.zeroElimed.CheckedChanged += new System.EventHandler(this.zeroElimed_CheckedChanged);
@@ -404,7 +437,7 @@ namespace Torn.UI
             this.hitsTieBreak.Location = new System.Drawing.Point(175, 29);
             this.hitsTieBreak.Name = "hitsTieBreak";
             this.hitsTieBreak.Size = new System.Drawing.Size(44, 17);
-            this.hitsTieBreak.TabIndex = 4;
+            this.hitsTieBreak.TabIndex = 5;
             this.hitsTieBreak.Text = "Hits";
             this.hitsTieBreak.UseVisualStyleBackColor = true;
             this.hitsTieBreak.CheckedChanged += new System.EventHandler(this.hitsTieBreak_CheckedChanged);
@@ -415,7 +448,7 @@ namespace Torn.UI
             this.numericHighScore.Location = new System.Drawing.Point(110, 248);
             this.numericHighScore.Name = "numericHighScore";
             this.numericHighScore.Size = new System.Drawing.Size(60, 20);
-            this.numericHighScore.TabIndex = 5;
+            this.numericHighScore.TabIndex = 10;
             this.numericHighScore.ValueChanged += new System.EventHandler(this.NumericHighScore_ValueChanged);
             // 
             // labelHighScore
@@ -425,7 +458,7 @@ namespace Torn.UI
             this.labelHighScore.Location = new System.Drawing.Point(32, 250);
             this.labelHighScore.Name = "labelHighScore";
             this.labelHighScore.Size = new System.Drawing.Size(74, 13);
-            this.labelHighScore.TabIndex = 4;
+            this.labelHighScore.TabIndex = 9;
             this.labelHighScore.Text = "For high score";
             // 
             // groupBoxHandicapStyle
@@ -439,7 +472,7 @@ namespace Torn.UI
             this.groupBoxHandicapStyle.Location = new System.Drawing.Point(6, 274);
             this.groupBoxHandicapStyle.Name = "groupBoxHandicapStyle";
             this.groupBoxHandicapStyle.Size = new System.Drawing.Size(317, 50);
-            this.groupBoxHandicapStyle.TabIndex = 3;
+            this.groupBoxHandicapStyle.TabIndex = 13;
             this.groupBoxHandicapStyle.TabStop = false;
             this.groupBoxHandicapStyle.Text = "Handicap Style";
             // 
@@ -448,7 +481,7 @@ namespace Torn.UI
             this.radioButtonMinus.Location = new System.Drawing.Point(98, 19);
             this.radioButtonMinus.Name = "radioButtonMinus";
             this.radioButtonMinus.Size = new System.Drawing.Size(40, 24);
-            this.radioButtonMinus.TabIndex = 3;
+            this.radioButtonMinus.TabIndex = 2;
             this.radioButtonMinus.TabStop = true;
             this.radioButtonMinus.Text = "-";
             this.radioButtonMinus.UseVisualStyleBackColor = true;
@@ -459,7 +492,7 @@ namespace Torn.UI
             this.radioButtonPlus.Location = new System.Drawing.Point(52, 19);
             this.radioButtonPlus.Name = "radioButtonPlus";
             this.radioButtonPlus.Size = new System.Drawing.Size(40, 24);
-            this.radioButtonPlus.TabIndex = 2;
+            this.radioButtonPlus.TabIndex = 1;
             this.radioButtonPlus.TabStop = true;
             this.radioButtonPlus.Text = "+";
             this.radioButtonPlus.UseVisualStyleBackColor = true;
@@ -470,7 +503,7 @@ namespace Torn.UI
             this.radioButtonNone.Location = new System.Drawing.Point(144, 19);
             this.radioButtonNone.Name = "radioButtonNone";
             this.radioButtonNone.Size = new System.Drawing.Size(60, 24);
-            this.radioButtonNone.TabIndex = 1;
+            this.radioButtonNone.TabIndex = 3;
             this.radioButtonNone.TabStop = true;
             this.radioButtonNone.Text = "None";
             this.radioButtonNone.UseVisualStyleBackColor = true;
@@ -594,7 +627,7 @@ namespace Torn.UI
             0});
             this.manualTeamCap.Name = "manualTeamCap";
             this.manualTeamCap.Size = new System.Drawing.Size(121, 20);
-            this.manualTeamCap.TabIndex = 12;
+            this.manualTeamCap.TabIndex = 10;
             this.manualTeamCap.Value = new decimal(new int[] {
             100,
             0,
@@ -609,7 +642,7 @@ namespace Torn.UI
             this.manualTeamCapLabel.Location = new System.Drawing.Point(61, 161);
             this.manualTeamCapLabel.Name = "manualTeamCapLabel";
             this.manualTeamCapLabel.Size = new System.Drawing.Size(83, 13);
-            this.manualTeamCapLabel.TabIndex = 11;
+            this.manualTeamCapLabel.TabIndex = 9;
             this.manualTeamCapLabel.Text = "Team Handicap";
             this.manualTeamCapLabel.Visible = false;
             // 
@@ -619,7 +652,7 @@ namespace Torn.UI
             this.playerGradeAlias.Location = new System.Drawing.Point(61, 220);
             this.playerGradeAlias.Name = "playerGradeAlias";
             this.playerGradeAlias.Size = new System.Drawing.Size(73, 13);
-            this.playerGradeAlias.TabIndex = 10;
+            this.playerGradeAlias.TabIndex = 11;
             this.playerGradeAlias.Text = "[player] Grade";
             this.playerGradeAlias.Visible = false;
             // 
@@ -630,7 +663,7 @@ namespace Torn.UI
             this.playerGradeBox.Location = new System.Drawing.Point(64, 236);
             this.playerGradeBox.Name = "playerGradeBox";
             this.playerGradeBox.Size = new System.Drawing.Size(121, 21);
-            this.playerGradeBox.TabIndex = 9;
+            this.playerGradeBox.TabIndex = 12;
             this.playerGradeBox.Visible = false;
             this.playerGradeBox.SelectedIndexChanged += new System.EventHandler(this.playerGradeBox_SelectedIndexChanged);
             // 
@@ -719,7 +752,7 @@ namespace Torn.UI
             this.label6.Location = new System.Drawing.Point(39, 47);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(57, 13);
-            this.label6.TabIndex = 2;
+            this.label6.TabIndex = 1;
             this.label6.Text = "Team Size";
             // 
             // teamSize
@@ -733,7 +766,7 @@ namespace Torn.UI
             0});
             this.teamSize.Name = "teamSize";
             this.teamSize.Size = new System.Drawing.Size(37, 20);
-            this.teamSize.TabIndex = 1;
+            this.teamSize.TabIndex = 2;
             this.teamSize.Value = new decimal(new int[] {
             5,
             0,
@@ -889,7 +922,7 @@ namespace Torn.UI
             this.label9.Location = new System.Drawing.Point(231, 12);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(54, 13);
-            this.label9.TabIndex = 14;
+            this.label9.TabIndex = 4;
             this.label9.Text = "Red Term";
             // 
             // label5
@@ -898,7 +931,7 @@ namespace Torn.UI
             this.label5.Location = new System.Drawing.Point(120, 12);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(65, 13);
-            this.label5.TabIndex = 13;
+            this.label5.TabIndex = 2;
             this.label5.Text = "Yellow Term";
             // 
             // label4
@@ -906,12 +939,17 @@ namespace Torn.UI
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(12, 12);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(61, 13);
-            this.label4.TabIndex = 12;
-            this.label4.Text = "Verbal Tem";
+            this.label4.Size = new System.Drawing.Size(64, 13);
+            this.label4.TabIndex = 0;
+            this.label4.Text = "Verbal Term";
             // 
             // yellowTermValue
             // 
+            this.yellowTermValue.Increment = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
             this.yellowTermValue.Location = new System.Drawing.Point(123, 28);
             this.yellowTermValue.Maximum = new decimal(new int[] {
             1000000,
@@ -925,7 +963,7 @@ namespace Torn.UI
             -2147483648});
             this.yellowTermValue.Name = "yellowTermValue";
             this.yellowTermValue.Size = new System.Drawing.Size(72, 20);
-            this.yellowTermValue.TabIndex = 11;
+            this.yellowTermValue.TabIndex = 3;
             this.yellowTermValue.Value = new decimal(new int[] {
             1000,
             0,
@@ -935,6 +973,11 @@ namespace Torn.UI
             // 
             // verbalTermValue
             // 
+            this.verbalTermValue.Increment = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
             this.verbalTermValue.Location = new System.Drawing.Point(15, 28);
             this.verbalTermValue.Maximum = new decimal(new int[] {
             1000000,
@@ -948,11 +991,16 @@ namespace Torn.UI
             -2147483648});
             this.verbalTermValue.Name = "verbalTermValue";
             this.verbalTermValue.Size = new System.Drawing.Size(72, 20);
-            this.verbalTermValue.TabIndex = 10;
+            this.verbalTermValue.TabIndex = 1;
             this.verbalTermValue.ValueChanged += new System.EventHandler(this.verbalTermValue_ValueChanged);
             // 
             // redTermValue
             // 
+            this.redTermValue.Increment = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
             this.redTermValue.Location = new System.Drawing.Point(234, 28);
             this.redTermValue.Maximum = new decimal(new int[] {
             1000000,
@@ -966,7 +1014,7 @@ namespace Torn.UI
             -2147483648});
             this.redTermValue.Name = "redTermValue";
             this.redTermValue.Size = new System.Drawing.Size(72, 20);
-            this.redTermValue.TabIndex = 9;
+            this.redTermValue.TabIndex = 5;
             this.redTermValue.Value = new decimal(new int[] {
             2000,
             0,
@@ -995,40 +1043,6 @@ namespace Torn.UI
             this.buttonCancel.TabIndex = 6;
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
-            // 
-            // zeroedTieBreak
-            // 
-            this.zeroedTieBreak.AutoSize = true;
-            this.zeroedTieBreak.Enabled = false;
-            this.zeroedTieBreak.Location = new System.Drawing.Point(225, 29);
-            this.zeroedTieBreak.Name = "zeroedTieBreak";
-            this.zeroedTieBreak.Size = new System.Drawing.Size(83, 17);
-            this.zeroedTieBreak.TabIndex = 10;
-            this.zeroedTieBreak.Text = "Non-Zeroed";
-            this.zeroedTieBreak.UseVisualStyleBackColor = true;
-            this.zeroedTieBreak.CheckedChanged += new System.EventHandler(this.zeroedTieBreak_CheckedChanged);
-            // 
-            // label11
-            // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(117, 30);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(53, 13);
-            this.label11.TabIndex = 11;
-            this.label11.Text = "Tie-Break";
-            this.label11.Click += new System.EventHandler(this.label11_Click);
-            // 
-            // halfVps
-            // 
-            this.halfVps.AutoSize = true;
-            this.halfVps.Enabled = false;
-            this.halfVps.Location = new System.Drawing.Point(175, 54);
-            this.halfVps.Name = "halfVps";
-            this.halfVps.Size = new System.Drawing.Size(146, 17);
-            this.halfVps.TabIndex = 12;
-            this.halfVps.Text = "Half VPs for Elimed Team";
-            this.halfVps.UseVisualStyleBackColor = true;
-            this.halfVps.CheckedChanged += new System.EventHandler(this.halfElimed_CheckedChanged);
             // 
             // FormLeague
             // 
@@ -1091,7 +1105,6 @@ namespace Torn.UI
 		private System.Windows.Forms.Button buttonRenameTeam;
 		private System.Windows.Forms.GroupBox groupBox2;
 		private System.Windows.Forms.Button buttonRenameLeague;
-		private System.Windows.Forms.Button buttonCopyFromLeague;
 		private System.Windows.Forms.GroupBox groupBox1;
 		private System.Windows.Forms.TreeView treeView1;
 		private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
@@ -1156,5 +1169,6 @@ namespace Torn.UI
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.CheckBox zeroedTieBreak;
         private System.Windows.Forms.CheckBox halfVps;
+        private System.Windows.Forms.Button buttonPasteTeams;
     }
 }
