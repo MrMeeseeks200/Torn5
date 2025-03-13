@@ -7,6 +7,7 @@ using System.Linq;
 using System.Windows.Forms;
 using Torn;
 using Torn.Report;
+using Torn5;
 
 namespace Torn.UI
 {
@@ -542,10 +543,23 @@ namespace Torn.UI
 			return colours;
 		}
 
-		void ButtonImportTeamsClick(object sender, EventArgs e)
+		void ButtonGenerateClick(object sender, EventArgs e)
 		{
-			buttonImportTeams.Text = "Generating...";
-			buttonImportTeams.Enabled = false;
+			buttonGenerate.Text = "Generating...";
+			buttonGenerate.Enabled = false;
+			try
+			{
+				GenerateTeamGrid();
+			}
+			finally
+			{
+				buttonGenerate.Text = "Generate";
+				buttonGenerate.Enabled = true;
+			}
+		}
+
+		private void GenerateTeamGrid()
+		{
 			continueGenerating.Enabled = false;
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(fixtureSelectedTeams, Holder.League);
@@ -553,7 +567,7 @@ namespace Torn.UI
 			double numberOfTeams = Holder.Fixture.Teams.Count;
 			bool hasRef = referee.Checked;
 			double teamsPerGame = TeamsPerGame();
-			double gamesPerTeam = (double) gamesPerTeamInput.Value + (hasRef ? (double) gamesPerTeamInput.Value / (teamsPerGame - 1) : 0);
+			double gamesPerTeam = (double)gamesPerTeamInput.Value + (hasRef ? (double)gamesPerTeamInput.Value / (teamsPerGame - 1) : 0);
 			int maxMillis = (int)maxTime.Value * 1000;
 
 			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
@@ -569,10 +583,11 @@ namespace Torn.UI
 
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
-			if(outputGrid.Checked && outputList.Checked)
+			if (outputGrid.Checked && outputList.Checked)
 			{
 				reportTeamsList.Report = Reports.FixtureCombined(Holder.Fixture, Holder.League);
-			} else if(outputList.Checked)
+			}
+			else if (outputList.Checked)
 			{
 				reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
 			}
@@ -580,8 +595,6 @@ namespace Torn.UI
 			{
 				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
 			}
-			buttonImportTeams.Text = "Generate";
-			buttonImportTeams.Enabled = true;
 		}
 
 		private void ContinueGenerateClick(object sender, EventArgs e)
@@ -589,8 +602,8 @@ namespace Torn.UI
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Parse(fixtureSelectedTeams, Holder.League);
 			Holder.Fixture.Games.Clear();
-			buttonImportTeams.Text = "Generating...";
-			buttonImportTeams.Enabled = false;
+			buttonGenerate.Text = "Generating...";
+			buttonGenerate.Enabled = false;
 			continueGenerating.Enabled = false;
 			int maxMillis = (int)maxTime.Value * 1000;
 			List<List<int>> grid = ContinueMixing(previousGrid, previousGamesPerTeam, previousHasRef, previousExistingPlays, maxMillis, previousBestScore);
@@ -611,8 +624,8 @@ namespace Torn.UI
 			{
 				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
 			}
-			buttonImportTeams.Text = "Generate";
-			buttonImportTeams.Enabled = true;
+			buttonGenerate.Text = "Generate";
+			buttonGenerate.Enabled = true;
 		}
 
 		void ButtonImportGamesClick(object sender, EventArgs e)
@@ -719,27 +732,25 @@ namespace Torn.UI
 				loading = true;
 				Console.WriteLine(leagueTeams.Count);
 				SetTeamsBox(leagueTeams.Count);
-				if (leagueTeams?.Count < 50)
-				{
-					for (int i = 0; i < leagueTeams?.Count; i++)
-					{
-						teamSelectors[i].Text = leagueTeams[i].Name;
-						teamSelectors[i].Checked = true;
-						fixtureTeamSelectors[i].Text = leagueTeams[i].Name;
-						fixtureTeamSelectors[i].Checked = true;
-						fixtureTeamSelectors[i].Width = 250;
-						teamSelectors[i].Visible = true;
-						fixtureTeamSelectors[i].Visible = true;
 
-					}
-					for (int i = leagueTeams?.Count ?? 0; i < teamSelectors?.Count; i++)
-					{
-						teamSelectors[i].Checked = false;
-						teamSelectors[i].Visible = false;
-						fixtureTeamSelectors[i].Checked = false;
-						fixtureTeamSelectors[i].Visible = false;
-					}
+				for (int i = 0; i < leagueTeams?.Count; i++)
+				{
+					teamSelectors[i].Text = leagueTeams[i].Name;
+					teamSelectors[i].Checked = true;
+					fixtureTeamSelectors[i].Text = leagueTeams[i].Name;
+					fixtureTeamSelectors[i].Checked = true;
+					teamSelectors[i].Visible = true;
+					fixtureTeamSelectors[i].Visible = true;
 				}
+
+				for (int i = leagueTeams?.Count ?? 0; i < teamSelectors?.Count; i++)
+				{
+					teamSelectors[i].Checked = false;
+					teamSelectors[i].Visible = false;
+					fixtureTeamSelectors[i].Checked = false;
+					fixtureTeamSelectors[i].Visible = false;
+				}
+
 				loading = false;
 				TeamCheckedChanged(null, null);
 			}
@@ -753,7 +764,7 @@ namespace Torn.UI
 				{
 					Left = 9,
 					Top = 10 + teamSelectors.Count * 26,
-					Width = teamsList.Width - 10,
+					Width = teamsList.Width - 28,  // Leave room for a vertical scrollbar, should the owning panel decide it needs one.
 					Parent = teamsList
 				};
 
@@ -766,7 +777,7 @@ namespace Torn.UI
 				{
 					Left = 9,
 					Top = 10 + fixtureTeamSelectors.Count * 26,
-					Width = fixtureTeamsList.Width - 10,
+					Width = fixtureTeamsList.Width - 28,
 					Parent = fixtureTeamsList
 				};
 

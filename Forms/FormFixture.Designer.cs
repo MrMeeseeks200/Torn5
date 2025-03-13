@@ -29,7 +29,7 @@ namespace Torn.UI
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.buttonImportTeams = new System.Windows.Forms.Button();
+			this.buttonGenerate = new System.Windows.Forms.Button();
 			this.buttonImportGrid = new System.Windows.Forms.Button();
 			this.buttonImportGames = new System.Windows.Forms.Button();
 			this.textBoxSeparator = new System.Windows.Forms.TextBox();
@@ -42,7 +42,7 @@ namespace Torn.UI
 			this.tabTeams = new System.Windows.Forms.TabPage();
 			this.label26 = new System.Windows.Forms.Label();
 			this.backToBackPenalty = new System.Windows.Forms.NumericUpDown();
-			this.fixtureTeamsList = new System.Windows.Forms.GroupBox();
+			this.fixtureTeamsList = new System.Windows.Forms.Panel();
 			this.label25 = new System.Windows.Forms.Label();
 			this.minBetween = new System.Windows.Forms.NumericUpDown();
 			this.gameDateTime = new System.Windows.Forms.DateTimePicker();
@@ -82,7 +82,7 @@ namespace Torn.UI
 			this.numericSize = new System.Windows.Forms.NumericUpDown();
 			this.panelGraphic = new System.Windows.Forms.Panel();
 			this.tabFinals = new System.Windows.Forms.TabPage();
-			this.teamsList = new System.Windows.Forms.GroupBox();
+			this.teamsList = new System.Windows.Forms.Panel();
 			this.frameFinals1 = new Torn5.Controls.FrameFinals();
 			this.tabPyramid = new System.Windows.Forms.TabPage();
 			this.framePyramid1 = new Torn5.Controls.FramePyramid();
@@ -112,16 +112,16 @@ namespace Torn.UI
 			this.tabPyramidRound.SuspendLayout();
 			this.SuspendLayout();
 			// 
-			// buttonImportTeams
+			// buttonGenerate
 			// 
-			this.buttonImportTeams.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.buttonImportTeams.Location = new System.Drawing.Point(206, 671);
-			this.buttonImportTeams.Name = "buttonImportTeams";
-			this.buttonImportTeams.Size = new System.Drawing.Size(75, 23);
-			this.buttonImportTeams.TabIndex = 10;
-			this.buttonImportTeams.Text = "Generate";
-			this.buttonImportTeams.UseVisualStyleBackColor = true;
-			this.buttonImportTeams.Click += new System.EventHandler(this.ButtonImportTeamsClick);
+			this.buttonGenerate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.buttonGenerate.Location = new System.Drawing.Point(206, 671);
+			this.buttonGenerate.Name = "buttonGenerate";
+			this.buttonGenerate.Size = new System.Drawing.Size(75, 23);
+			this.buttonGenerate.TabIndex = 10;
+			this.buttonGenerate.Text = "Generate";
+			this.buttonGenerate.UseVisualStyleBackColor = true;
+			this.buttonGenerate.Click += new System.EventHandler(this.ButtonGenerateClick);
 			// 
 			// buttonImportGrid
 			// 
@@ -253,7 +253,7 @@ namespace Torn.UI
 			this.tabTeams.Controls.Add(this.label22);
 			this.tabTeams.Controls.Add(this.gamesPerTeamInput);
 			this.tabTeams.Controls.Add(this.reportTeamsList);
-			this.tabTeams.Controls.Add(this.buttonImportTeams);
+			this.tabTeams.Controls.Add(this.buttonGenerate);
 			this.tabTeams.Location = new System.Drawing.Point(4, 22);
 			this.tabTeams.Name = "tabTeams";
 			this.tabTeams.Padding = new System.Windows.Forms.Padding(3);
@@ -294,11 +294,12 @@ namespace Torn.UI
 			// 
 			this.fixtureTeamsList.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
+			this.fixtureTeamsList.AutoScroll = true;
+			this.fixtureTeamsList.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
 			this.fixtureTeamsList.Location = new System.Drawing.Point(9, 8);
 			this.fixtureTeamsList.Name = "fixtureTeamsList";
 			this.fixtureTeamsList.Size = new System.Drawing.Size(272, 605);
 			this.fixtureTeamsList.TabIndex = 33;
-			this.fixtureTeamsList.TabStop = false;
 			// 
 			// label25
 			// 
@@ -816,12 +817,12 @@ namespace Torn.UI
 			// 
 			// teamsList
 			// 
+			this.teamsList.AutoScroll = true;
 			this.teamsList.Dock = System.Windows.Forms.DockStyle.Left;
 			this.teamsList.Location = new System.Drawing.Point(3, 3);
 			this.teamsList.Name = "teamsList";
 			this.teamsList.Size = new System.Drawing.Size(156, 732);
 			this.teamsList.TabIndex = 16;
-			this.teamsList.TabStop = false;
 			// 
 			// frameFinals1
 			// 
@@ -936,7 +937,7 @@ namespace Torn.UI
 		private System.Windows.Forms.Label label3;
 		private System.Windows.Forms.Label label2;
 		private System.Windows.Forms.Button buttonImportGames;
-		private System.Windows.Forms.Button buttonImportTeams;
+		private System.Windows.Forms.Button buttonGenerate;
 		private System.Windows.Forms.TextBox textBoxGames;
 		private Torn5.Controls.DisplayReport displayReportGames;
 		private Torn5.Controls.DisplayReport displayReportGrid;
@@ -968,8 +969,8 @@ namespace Torn.UI
         private System.Windows.Forms.DateTimePicker gameDateTime;
         private System.Windows.Forms.Label label25;
         private System.Windows.Forms.NumericUpDown minBetween;
-        private System.Windows.Forms.GroupBox teamsList;
-        private System.Windows.Forms.GroupBox fixtureTeamsList;
+        private System.Windows.Forms.Panel teamsList;
+        private System.Windows.Forms.Panel fixtureTeamsList;
         private System.Windows.Forms.Label label26;
         private System.Windows.Forms.NumericUpDown backToBackPenalty;
 	}
