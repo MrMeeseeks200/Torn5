@@ -282,7 +282,7 @@ namespace Torn.Report
 				var row = new ZRow();
 				var teamCell = new ZCell(ft.Name)
 				{
-					Hyper = "fixture.html?team=" + ft.Id().ToString(CultureInfo.InvariantCulture)
+					Hyper = "fixture.html?team=" + ft.TeamId.ToString(CultureInfo.InvariantCulture)
 				};
 				row.Add(teamCell);
 				report.Rows.Add(row);
@@ -308,8 +308,8 @@ namespace Torn.Report
 					else
 						cell = new ZCell();
 
-					cell.CssClass = "t" + ft.Id().ToString(CultureInfo.InvariantCulture) +
-						String.Concat(fg.Teams.Keys.Select(k => k.Id() == ft.Id() ? "" : " t" + k.Id().ToString(CultureInfo.InvariantCulture)));
+					cell.CssClass = "t" + ft.TeamId.ToString(CultureInfo.InvariantCulture) +
+						String.Concat(fg.Teams.Keys.Select(k => k.TeamId == ft.TeamId ? "" : " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
 
 					report.Rows[i].Add(cell);
 				}
@@ -322,7 +322,7 @@ namespace Torn.Report
 				var ft = fixture.Teams[i];
 				var teamCell = new ZCell(ft.Name)
 				{
-					Hyper = "fixture.html?team=" + ft.Id().ToString(CultureInfo.InvariantCulture)
+					Hyper = "fixture.html?team=" + ft.TeamId.ToString(CultureInfo.InvariantCulture)
 				};
 				report.Rows[i].Add(teamCell);
 			}
@@ -384,12 +384,12 @@ namespace Torn.Report
 				{
 					ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
 					{
-						Hyper = "fixture.html?team=" + kv.Key.Id().ToString(CultureInfo.InvariantCulture)
+						Hyper = "fixture.html?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
 					};
 					row.Add(teamCell);
 				}
 
-				row.CssClass = String.Concat(fg.Teams.Keys.Select(k => " t" + k.Id().ToString(CultureInfo.InvariantCulture)));
+				row.CssClass = String.Concat(fg.Teams.Keys.Select(k => " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
 
 				report.Rows.Add(row);
 			}
@@ -457,7 +457,7 @@ namespace Torn.Report
 				{
 					ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
 					{
-						Hyper = "fixture.html?team=" + kv.Key.Id().ToString(CultureInfo.InvariantCulture)
+						Hyper = "fixture.html?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
 					};
 					row.Add(teamCell);
 					if (index == fg.Teams.Count - 1)
@@ -468,7 +468,7 @@ namespace Torn.Report
 					index++;
 				}
 
-				row.CssClass = String.Concat(fg.Teams.Keys.Select(k => " t" + k.Id().ToString(CultureInfo.InvariantCulture)));
+				row.CssClass = String.Concat(fg.Teams.Keys.Select(k => " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
 
 				report.Rows.Add(row);
 			}
@@ -506,8 +506,8 @@ namespace Torn.Report
 					else
 						cell = new ZCell();
 
-					cell.CssClass = "t" + ft.Id().ToString(CultureInfo.InvariantCulture) +
-						String.Concat(fg.Teams.Keys.Select(k => k.Id() == ft.Id() ? "" : " t" + k.Id().ToString(CultureInfo.InvariantCulture)));
+					cell.CssClass = "t" + ft.TeamId.ToString(CultureInfo.InvariantCulture) +
+						String.Concat(fg.Teams.Keys.Select(k => k.TeamId == ft.TeamId ? "" : " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
 
 					report.Rows[i].Add(cell);
 				}

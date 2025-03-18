@@ -298,7 +298,7 @@ namespace Torn.Report
 				sb.Append("<br/><a href=\"fixture.html\">Up Next</a>:");
 
 				foreach (var ft in NextGame.Teams)
-					sb.Append(ft.Key.LeagueTeam.Name + "; ");
+					sb.Append(ft.Key.Name + "; ");
 				sb.Length -= 2;
 			}
 			// Add a hyperlink for each team: "team" + team.Id.ToString("D2", CultureInfo.InvariantCulture)
@@ -565,7 +565,7 @@ xhrScoreboard.send();
 				sb.Append("</div><br/><a href=\"fixture.html\">Up Next</a>:");
 
 				foreach (var ft in NextGame.Teams)
-					sb.Append(ft.Key.LeagueTeam.Name + "; ");
+					sb.Append(ft.Key.Name + "; ");
 				sb.Length -= 2;
 				sb.Append("<div>");
 			}
@@ -635,7 +635,7 @@ xhrScoreboard.send();
 			{
 				nowText += "\nUp Next:";
 				foreach (var ft in NextGame.Teams)
-					nowText += ft.Key.LeagueTeam + "; ";
+					nowText += ft.Key + "; ";
 			}
 
 			return nowText;

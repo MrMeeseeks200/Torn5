@@ -434,14 +434,7 @@ namespace Torn.Report
 			FileName = fileName;
 			League = league;
 
-			foreach (LeagueTeam lt in League.Teams)
-				if (!Fixture.Teams.Exists(ft => ft.LeagueTeam == lt))
-					Fixture.Teams.Add(new FixtureTeam
-						{
-							LeagueTeam = lt,
-							Name = lt.Name
-						}
-					);
+			Fixture.Teams.Populate(League.Teams);
 		}
 
 		public override string ToString()

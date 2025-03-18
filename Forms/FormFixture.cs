@@ -562,7 +562,7 @@ namespace Torn.UI
 		{
 			continueGenerating.Enabled = false;
 			Holder.Fixture.Teams.Clear();
-			Holder.Fixture.Teams.Parse(fixtureSelectedTeams, Holder.League);
+			Holder.Fixture.Teams.Populate(fixtureSelectedTeams);
 			Holder.Fixture.Games.Clear();
 			double numberOfTeams = Holder.Fixture.Teams.Count;
 			bool hasRef = referee.Checked;
@@ -600,7 +600,7 @@ namespace Torn.UI
 		private void ContinueGenerateClick(object sender, EventArgs e)
 		{
 			Holder.Fixture.Teams.Clear();
-			Holder.Fixture.Teams.Parse(fixtureSelectedTeams, Holder.League);
+			Holder.Fixture.Teams.Populate(fixtureSelectedTeams);
 			Holder.Fixture.Games.Clear();
 			buttonGenerate.Text = "Generating...";
 			buttonGenerate.Enabled = false;
@@ -696,15 +696,7 @@ namespace Torn.UI
 				List<LeagueTeam> leagueTeams = Holder.League.GetTeamLadder();
 				if (Holder.Fixture.Teams.Count == 0)
 				{
-					foreach (var lt in leagueTeams)
-					{
-						Holder.Fixture.Teams.Add(new FixtureTeam
-						{
-							LeagueTeam = lt,
-							Name = lt.Name
-						}
-						);
-					}
+					Holder.Fixture.Teams.Populate(leagueTeams);
 				}
 				else
 				{
@@ -839,10 +831,10 @@ namespace Torn.UI
 
 			foreach (var fg in games)
 				foreach (var ft in fg.Teams)
-					if (0 < ft.Key.Id() && ft.Key.Id() < difficulties.Length)
+					if (0 < ft.Key.TeamId && ft.Key.TeamId < difficulties.Length)
 					{
-						difficulties[ft.Key.Id() - 1] += (fg.Teams.Sum(x => x.Key.Id()) - ft.Key.Id()) / (fg.Teams.Count - 1F);
-						counts[ft.Key.Id() - 1]++;
+						difficulties[ft.Key.TeamId - 1] += (fg.Teams.Sum(x => x.Key.TeamId) - ft.Key.TeamId) / (fg.Teams.Count - 1F);
+						counts[ft.Key.TeamId - 1]++;
 					}
 			
 			for (int row = 0; row < rows; row++)
@@ -905,8 +897,8 @@ namespace Torn.UI
 				// Colour cells that represent teams that the selected team plays against in this game.
 				foreach (var kv in game.Teams)
 				{
-					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (kv.Key.Id() - 1) * size, (team.Id() - 1) * size, size, size);
-					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (team.Id() - 1) * size, (kv.Key.Id() - 1) * size, size, size);
+					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (kv.Key.TeamId - 1) * size, (team.TeamId - 1) * size, size, size);
+					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (team.TeamId - 1) * size, (kv.Key.TeamId - 1) * size, size, size);
 				}
 			}
 
@@ -1061,18 +1053,18 @@ namespace Torn.UI
 	}
 }
 
-class TeamComparer : IComparer<FixtureTeam>
+class TeamComparer : IComparer<LeagueTeam>
 {
 	/// <summary>Sorted list of league teams.</summary>
 	public List<LeagueTeam> LeagueTeams { get; set; }
 
-	public int Compare(FixtureTeam x, FixtureTeam y)
+	public int Compare(LeagueTeam x, LeagueTeam y)
 	{
 		if (LeagueTeams == null)
 			return 0;
 
-		int ix = LeagueTeams.FindIndex(lt => lt == x.LeagueTeam);
-		int iy = LeagueTeams.FindIndex(lt => lt == y.LeagueTeam);
+		int ix = LeagueTeams.FindIndex(lt => lt == x);
+		int iy = LeagueTeams.FindIndex(lt => lt == y);
 		if (ix == -1) ix = 999999;
 		if (iy == -1) iy = 999999;
 		return ix - iy;

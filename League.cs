@@ -240,7 +240,7 @@ namespace Torn
 	/// <summary>Stores data about each remembered league team</summary>
 	public class LeagueTeam: IComparable
 	{
-		internal int TeamId  { get; set; }
+		internal int TeamId { get; set; } = -1;
 
 		public List<LeaguePlayer> Players { get; set; }
 

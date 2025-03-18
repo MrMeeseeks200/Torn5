@@ -470,11 +470,7 @@ namespace Torn.UI
 
 			if (form.League.Teams.Count == 0)
 				foreach (var ft in activeHolder.Fixture.Teams)
-				{
-					var lt = new LeagueTeam { Name = ft.Name };
-					ft.LeagueTeam = lt;
-					form.League.AddTeam(lt);
-				}
+					form.League.AddTeam(ft.Clone(form.League));
 
 			if (form.ShowDialog() == DialogResult.OK)
 			{
@@ -1580,7 +1576,7 @@ namespace Torn.UI
 				if (xtemplates != null)
 					holder.ReportTemplates.FromXml(xtemplates);
 
-				holder.Fixture.Teams.Parse(holder.League);
+				holder.Fixture.Teams.Populate(holder.League.Teams);
 				var xfixtures = xleague.SelectSingleNode("fixtures");
 				if (xfixtures != null)
 					holder.Fixture.Games.Parse(xfixtures.InnerText, holder.Fixture.Teams, '\t');  // TODO: change to .FromXml(doc, xfixtures);

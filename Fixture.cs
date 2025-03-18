@@ -58,7 +58,7 @@ namespace Torn
 			foreach (var kv in fg.Teams)
 			{
 				var ft = kv.Key;
-				var matches = game.Teams.Where(gt => gt.TeamId == ft.Id());  // Should be 1 item in the collection if this fixture team is in this game. 
+				var matches = game.Teams.Where(gt => gt.TeamId == ft.TeamId);  // Should be 1 item in the collection if this fixture team is in this game. 
 				if (matches.Any())
 				{
 					a++;
@@ -71,7 +71,7 @@ namespace Torn
 			int b = 0;
 			foreach (var team in game.Teams)
 				foreach (var kv in fg.Teams)
-					if (team.TeamId == kv.Key.Id())
+					if (team.TeamId == kv.Key.TeamId)
 					{
 						b++;
 						if (team.Colour == kv.Value)
@@ -82,43 +82,20 @@ namespace Torn
 		}
 	}
 
-	public class FixtureTeams: List<FixtureTeam>
+	public class FixtureTeams: List<LeagueTeam>
 	{
-		/// <summary>This Parse is used to read team names from an input form.</summary>
-		public void Parse(List<LeagueTeam> teams, League league)
+		/// <summary>Ensure all the league's teams are present in the list of fixture teams.</summary>
+		public void Populate(List<LeagueTeam> teams)
 		{
-			for (int i = 0; i < teams.Count; i++)
-			{
-				FixtureTeam ft = new FixtureTeam
-				{
-					Name = teams[i].Name
-				};
-				if (league != null)
-				{
-					ft.LeagueTeam = teams[i];
-				}
-
-				Add(ft);
-			}
-		}
-
-		/// <summary>This Parse is used during app load and restore.</summary>
-		public void Parse(League league)
-		{
-			foreach (LeagueTeam lt in league.Teams)
-				if (!Exists(ft => ft.Name == lt.Name))
-					Add(new FixtureTeam
-						{
-							Name = lt.Name,
-							LeagueTeam = lt
-						}
-					);
+			foreach (LeagueTeam lt in teams)
+				if (!Exists(ft => ft == lt))
+					Add(lt);
 		}
 
 		public override string ToString()
 		{
 			StringBuilder sb = new StringBuilder();
-			foreach (FixtureTeam ft in this)
+			foreach (LeagueTeam ft in this)
 			{
 				sb.Append(ft.Name);
 				sb.Append("\r\n");
@@ -126,23 +103,6 @@ namespace Torn
 			if (sb.Length > 0)
 				sb.Length -= 2;
 			return sb.ToString();
-		}
-	}
-
-	public class FixtureTeam
-	{
-		public LeagueTeam LeagueTeam { get; set; }
-		string name;
-		public string Name { get { return LeagueTeam == null ? name : LeagueTeam.Name; } set { name = value; } }
-
-		public int Id() 
-		{
-			return LeagueTeam == null ? -1 : LeagueTeam.TeamId;
-		}
-
-		public override string ToString()
-		{
-			return "FixtureTeam " + Name;
 		}
 	}
 
@@ -163,16 +123,16 @@ namespace Torn
 				for (int i = 1; i < fields.Length; i++)
 					if (!string.IsNullOrEmpty(fields[i]))
 					{
-						FixtureTeam ft;
+						LeagueTeam ft;
 						if (int.TryParse(fields[i], out int teamnum))
 						{
-							ft = teams.Find(t => t.Id() == teamnum);
+							ft = teams.Find(t => t.TeamId == teamnum);
 						}
 						else
-							ft = teams.Find(x => x.LeagueTeam != null && x.LeagueTeam.Name == fields[i]);
+							ft = teams.Find(x => x.Name == fields[i]);
 
 						if (ft == null)
-							ft = new FixtureTeam
+							ft = new LeagueTeam
 							{
 								Name = "Team " + fields[i]
 							};
@@ -192,14 +152,14 @@ namespace Torn
 		}
 
 		public void Parse(List<List<int>> grid, FixtureTeams teams, DateTime firstGame, TimeSpan duration, string colours = "1,2,4,17")
-        {
+		{
 			string str = "";
 
 			foreach(List<int> row in grid)
-            {
+			{
 				str += firstGame.ToString("dd/MM/yyyy hh:mm:ss tt");
 				foreach (int team in row)
-                {
+				{
 					str += "\t";
 					str += team + 1;
 				}
@@ -209,7 +169,7 @@ namespace Torn
 
 			Parse(str, teams, '\t', colours);
 
-        }
+		}
 
 		// Import past games from a league.
 		public void Parse(League league, FixtureTeams teams)
@@ -223,7 +183,7 @@ namespace Torn
 
 				foreach (GameTeam gt in lg.Teams)
 				{
-					FixtureTeam ft = teams.Find(x => x.LeagueTeam == league.LeagueTeam(gt));
+					LeagueTeam ft = teams.Find(x => x == league.LeagueTeam(gt));
 					if (ft != null && !fg.Teams.ContainsKey(ft))
 						fg.Teams.Add(ft, gt.Colour);
 				}
@@ -289,19 +249,19 @@ namespace Torn
 					var ft = fg.Teams.FirstOrDefault(x => x.Value == i).Key;
 					if (ft != null)
 					{
-						if (ft.LeagueTeam == null)
+						if (ft.TeamId == -1)  // If a team exists in FixtureTeams but not in League.Teams it may never have had a TeamId set.
 							sb.Append(ft.Name);
 						else
-							sb.Append(ft.Id());
+							sb.Append(ft.TeamId);
 						sb.Append('\t');
 					}
 				}
 				foreach (var kv in fg.Teams.Where(t => t.Value == Colour.None))
 				{
-					if (kv.Key.LeagueTeam == null)
+					if (kv.Key.TeamId == -1)
 						sb.Append(kv.Key.Name);
 					else
-						sb.Append(kv.Key.Id());
+						sb.Append(kv.Key.TeamId);
 					sb.Append('\t');
 				}
 
@@ -314,7 +274,7 @@ namespace Torn
 
 		public string[] ToGrid(FixtureTeams teams)
 		{
-			int teamsCount = Math.Max(teams.Count, (int)this.Max(fg => fg.Teams.Count == 0 ? 0 : fg.Teams.Max(ft => ft.Key.Id())));
+			int teamsCount = Math.Max(teams.Count, (int)this.Max(fg => fg.Teams.Count == 0 ? 0 : fg.Teams.Max(ft => ft.Key.TeamId)));
 			var lines = new string[teamsCount];
 
 			for (int col = 0; col < Count; col++)
@@ -326,7 +286,7 @@ namespace Torn
 						lines[row] = "";
 
 					if (row < teams.Count && fg.Teams.ContainsKey(teams[row]))
-					    lines[row] += fg.Teams[teams[row]].ToChar();
+						lines[row] += fg.Teams[teams[row]].ToChar();
 					else
 						lines[row] += '.';
 				}
@@ -338,11 +298,11 @@ namespace Torn
 	public class FixtureGame: IComparable
 	{
 		public DateTime Time { get; set; }
-		public Dictionary<FixtureTeam, Colour> Teams { get; set; }
+		public Dictionary<LeagueTeam, Colour> Teams { get; set; }
 		
 		public FixtureGame()
 		{
-			Teams = new Dictionary<FixtureTeam, Colour>();
+			Teams = new Dictionary<LeagueTeam, Colour>();
 		}
 
 		int IComparable.CompareTo(object obj)
@@ -365,20 +325,20 @@ namespace Torn
 				var ft = Teams.FirstOrDefault(x => x.Value == i).Key;
 				if (ft != null)
 				{
-					if (ft.LeagueTeam == null)
+					if (ft.TeamId == -1)
 						sb.Append(ft.Name);
 					else
-						sb.Append(ft.Id());
+						sb.Append(ft.TeamId);
 					sb.Append('\t');
 				}
 			}
 
 			foreach (var kv in Teams.Where(t => t.Value == Colour.None))
 			{
-				if (kv.Key.LeagueTeam == null)
+				if (kv.Key.TeamId == -1)
 					sb.Append(kv.Key.Name);
 				else
-					sb.Append(kv.Key.Id());
+					sb.Append(kv.Key.TeamId);
 				sb.Append('\t');
 			}
 

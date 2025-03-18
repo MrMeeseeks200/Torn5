@@ -204,7 +204,7 @@ namespace TornWeb
 		{
 			var league = CreateLeague();
 			var fixture = new Fixture();
-			fixture.Teams.Parse(league);
+			fixture.Teams.Populate(league.Teams);
 
 			Assert.That(3 == fixture.Teams.Count, "fixture teams = 3");
 			Assert.That("Team B" == fixture.Teams[1].Name, "fixture Team B");
