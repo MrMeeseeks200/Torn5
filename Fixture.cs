@@ -274,7 +274,7 @@ namespace Torn
 
 		public string[] ToGrid(FixtureTeams teams)
 		{
-			int teamsCount = Math.Max(teams.Count, (int)this.Max(fg => fg.Teams.Count == 0 ? 0 : fg.Teams.Max(ft => ft.Key.TeamId)));
+			int teamsCount = Math.Max(teams.Count, this.Count == 0 ? 0 : this.Max(fg => fg.Teams.Count == 0 ? 0 : fg.Teams.Max(ft => ft.Key.TeamId)));
 			var lines = new string[teamsCount];
 
 			for (int col = 0; col < Count; col++)

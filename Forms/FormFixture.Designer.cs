@@ -40,6 +40,8 @@ namespace Torn.UI
 			this.textBoxGames = new System.Windows.Forms.TextBox();
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabTeams = new System.Windows.Forms.TabPage();
+			this.numericRings = new System.Windows.Forms.NumericUpDown();
+			this.checkRings = new System.Windows.Forms.CheckBox();
 			this.label26 = new System.Windows.Forms.Label();
 			this.backToBackPenalty = new System.Windows.Forms.NumericUpDown();
 			this.fixtureTeamsList = new System.Windows.Forms.Panel();
@@ -90,6 +92,7 @@ namespace Torn.UI
 			this.framePyramidRound1 = new Torn5.Controls.FramePyramidRound();
 			this.tabControl1.SuspendLayout();
 			this.tabTeams.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericRings)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.backToBackPenalty)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.minBetween)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.maxTime)).BeginInit();
@@ -231,6 +234,8 @@ namespace Torn.UI
 			// 
 			// tabTeams
 			// 
+			this.tabTeams.Controls.Add(this.numericRings);
+			this.tabTeams.Controls.Add(this.checkRings);
 			this.tabTeams.Controls.Add(this.label26);
 			this.tabTeams.Controls.Add(this.backToBackPenalty);
 			this.tabTeams.Controls.Add(this.fixtureTeamsList);
@@ -261,6 +266,42 @@ namespace Torn.UI
 			this.tabTeams.TabIndex = 0;
 			this.tabTeams.Text = "Teams";
 			this.tabTeams.UseVisualStyleBackColor = true;
+			// 
+			// numericRings
+			// 
+			this.numericRings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.numericRings.Enabled = false;
+			this.numericRings.Location = new System.Drawing.Point(211, 632);
+			this.numericRings.Maximum = new decimal(new int[] {
+            9,
+            0,
+            0,
+            0});
+			this.numericRings.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+			this.numericRings.Name = "numericRings";
+			this.numericRings.Size = new System.Drawing.Size(53, 20);
+			this.numericRings.TabIndex = 37;
+			this.numericRings.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+			// 
+			// checkRings
+			// 
+			this.checkRings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.checkRings.AutoSize = true;
+			this.checkRings.Location = new System.Drawing.Point(211, 615);
+			this.checkRings.Name = "checkRings";
+			this.checkRings.Size = new System.Drawing.Size(53, 17);
+			this.checkRings.TabIndex = 36;
+			this.checkRings.Text = "Rings";
+			this.checkRings.UseVisualStyleBackColor = true;
+			this.checkRings.CheckedChanged += new System.EventHandler(this.CheckRingsCheckedChanged);
 			// 
 			// label26
 			// 
@@ -366,6 +407,7 @@ namespace Torn.UI
 			this.outputList.TabIndex = 27;
 			this.outputList.Text = "Game List";
 			this.outputList.UseVisualStyleBackColor = true;
+			this.outputList.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
 			// 
 			// outputGrid
 			// 
@@ -379,6 +421,7 @@ namespace Torn.UI
 			this.outputGrid.TabIndex = 26;
 			this.outputGrid.Text = "Game Grid";
 			this.outputGrid.UseVisualStyleBackColor = true;
+			this.outputGrid.CheckedChanged += new System.EventHandler(this.OutputCheckChanged);
 			// 
 			// printReport1
 			// 
@@ -889,6 +932,7 @@ namespace Torn.UI
 			this.tabControl1.ResumeLayout(false);
 			this.tabTeams.ResumeLayout(false);
 			this.tabTeams.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.numericRings)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.backToBackPenalty)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.minBetween)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.maxTime)).EndInit();
@@ -973,5 +1017,7 @@ namespace Torn.UI
         private System.Windows.Forms.Panel fixtureTeamsList;
         private System.Windows.Forms.Label label26;
         private System.Windows.Forms.NumericUpDown backToBackPenalty;
+		private System.Windows.Forms.NumericUpDown numericRings;
+		private System.Windows.Forms.CheckBox checkRings;
 	}
 }

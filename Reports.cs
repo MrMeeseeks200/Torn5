@@ -255,28 +255,15 @@ namespace Torn.Report
 		/// <summary>Fixtures. Each row is a team. Each column is a game.</summary>
 		public static ZoomReport FixtureGrid(Fixture fixture, League league)
 		{
-			string prevDate = "";
-			bool hasMultipleDates = false;
+			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
+			string dateText = multiDay || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
 
-			foreach (var fg in fixture.Games)
-			{
-				string date = fg.Time.ToString("dd/MM/yyyy");
-				if (prevDate != "")
-				{
-					if (prevDate != date)
-					{
-						hasMultipleDates = true;
-					}
-				}
-				prevDate = date;
-
-			}
-			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + (hasMultipleDates ? "" : " " + prevDate), "Team", "left")
+			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Team", "left")
 			{
 				CssClass = "fixturegrid"
 			};
 
-			// Create a row for each team, with team name at left. 
+			// Create a row for each team, with team name at left.
 			foreach (var ft in fixture.Teams)
 			{
 				var row = new ZRow();
@@ -287,8 +274,6 @@ namespace Torn.Report
 				row.Add(teamCell);
 				report.Rows.Add(row);
 			}
-
-			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
 
 			foreach (var fg in fixture.Games)
 			{
@@ -304,7 +289,7 @@ namespace Torn.Report
 					ZCell cell;
 
 					if (fg.Teams.ContainsKey(ft))
-						cell = new ZCell(fg.Teams[ft].ToString()[0].ToString(), fg.Teams[fixture.Teams[i]].ToColor());
+						cell = new ZCell(fg.Teams[ft].ToChar().ToString(), fg.Teams[fixture.Teams[i]].ToColor());
 					else
 						cell = new ZCell();
 
@@ -333,23 +318,10 @@ namespace Torn.Report
 		/// <summary>Fixtures. Each row is a game. CSS stuff is consumed by Javascript added in WebOutput.cs' ReportPages.FixturePage.</summary>
 		public static ZoomReport FixtureList(Fixture fixture, League league)
 		{
-			string prevDate = "";
-			bool hasMultipleDates = false;
+			bool hasMultipleDates = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
+			string dateText = hasMultipleDates || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
 
-			foreach (var fg in fixture.Games)
-			{
-				string date = fg.Time.ToString("dd/MM/yyyy");
-				if (prevDate != "")
-				{
-					if (prevDate != date)
-					{
-						hasMultipleDates = true;
-					}
-				}
-				prevDate = date;
-
-			}
-			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + (hasMultipleDates ? "" : " " + prevDate), "Time", "left")
+			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Time", "left")
 			{
 				CssClass = "fixturelist",
 				MultiColumnOK = true
@@ -398,25 +370,11 @@ namespace Torn.Report
 		}
 
 		public static ZoomReport FixtureCombined(Fixture fixture, League league)
-        {
-			string prevDate = "";
-			bool hasMultipleDates = false;
+		{
+			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
+			string dateText = multiDay || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
 
-			foreach (var fg in fixture.Games)
-			{
-				string date = fg.Time.ToString("dd/MM/yyyy");
-				if (prevDate != "")
-				{
-					if (prevDate != date)
-					{
-						hasMultipleDates = true;
-					}
-				}
-				prevDate = date;
-
-			}
-
-			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + (hasMultipleDates ? "" : " " + prevDate), "Time", "left")
+			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Time", "left")
 			{
 				CssClass = "fixturelist",
 				MultiColumnOK = true
@@ -443,7 +401,7 @@ namespace Torn.Report
 			{
 				ZRow row = new ZRow();
 
-				ZCell timeCell = new ZCell(fg.Time.ToString(hasMultipleDates ? "dd/MM/yyyy hh:mm tt" : "hh:mm tt"))
+				ZCell timeCell = new ZCell(fg.Time.ToString(multiDay ? "dd/MM/yyyy hh:mm tt" : "hh:mm tt"))
 				{
 					CssClass = "time"
 				};
@@ -486,8 +444,6 @@ namespace Torn.Report
 				report.Rows.Add(row);
 			}*/
 
-			bool multiDay = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
-
 			foreach (var fg in fixture.Games)
 			{
 				// Create a column for each game.
@@ -502,7 +458,7 @@ namespace Torn.Report
 					ZCell cell;
 
 					if (fg.Teams.ContainsKey(ft))
-						cell = new ZCell(fg.Teams[ft].ToString()[0].ToString(), fg.Teams[sortedTeams[i]].ToColor());
+						cell = new ZCell(fg.Teams[ft].ToChar().ToString(), fg.Teams[sortedTeams[i]].ToColor());
 					else
 						cell = new ZCell();
 

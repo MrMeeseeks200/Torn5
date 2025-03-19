@@ -521,15 +521,9 @@ namespace Torn.UI
 			}
 		}
 
-		double TeamsPerGame()
+		int TeamsPerGame()
 		{
-			double teamsPerGame = 0;
-			teamsPerGame += red.Checked ? 1 : 0;
-			teamsPerGame += yellow.Checked ? 1 : 0;
-			teamsPerGame += green.Checked ? 1 : 0;
-			teamsPerGame += blue.Checked ? 1 : 0;
-			teamsPerGame += referee.Checked ? 1 : 0;
-			return teamsPerGame;
+			return (red.Checked ? 1 : 0) + (blue.Checked ? 1 : 0) + (green.Checked ? 1 : 0) + (yellow.Checked ? 1 : 0) + (referee.Checked ? 1 : 0);
 		}
 
 		string TeamColours()
@@ -549,13 +543,24 @@ namespace Torn.UI
 			buttonGenerate.Enabled = false;
 			try
 			{
-				GenerateTeamGrid();
+				if (checkRings.Enabled && numericRings.Value > 1)
+					GenerateRingGrid();
+				else
+					GenerateTeamGrid();
 			}
 			finally
 			{
 				buttonGenerate.Text = "Generate";
 				buttonGenerate.Enabled = true;
 			}
+		}
+
+		private void GenerateRingGrid()
+		{
+			var grid = new RingGrid();
+			grid.GenerateRingGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)numericRings.Value, (int)gamesPerTeamInput.Value, gameDateTime.Value, (int)minBetween.Value);
+
+			RefreshReports();
 		}
 
 		private void GenerateTeamGrid()
@@ -581,8 +586,14 @@ namespace Torn.UI
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
 
+			RefreshReports();
+		}
+
+		private void RefreshReports()
+		{
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
+
 			if (outputGrid.Checked && outputList.Checked)
 			{
 				reportTeamsList.Report = Reports.FixtureCombined(Holder.Fixture, Holder.League);
@@ -795,6 +806,21 @@ namespace Torn.UI
 			});
 
 			frameFinals1.Teams = selectedTeams;
+		}
+
+		private void OutputCheckChanged(object sender, EventArgs e)
+		{
+			RefreshReports();
+		}
+
+		private void CheckRingsCheckedChanged(object sender, EventArgs e)
+		{
+			numericRings.Enabled = checkRings.Checked;
+
+			red.Enabled = !checkRings.Checked;
+			green.Enabled = !checkRings.Checked;
+			blue.Enabled = !checkRings.Checked;
+			yellow.Enabled = !checkRings.Checked;
 		}
 
 		private void FixtureTeamCheckedChanged(object sender, EventArgs e)
