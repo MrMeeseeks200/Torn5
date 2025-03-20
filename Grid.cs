@@ -7,36 +7,64 @@ namespace Torn5
 {
 	class RingGrid
 	{
-		FixtureGames games = new FixtureGames();
 		public void GenerateRingGrid(League league, Fixture fixture, List<LeagueTeam> teams, int numRings, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames)
 		{
-			if (numRings != 6 || gamesPerTeam != 6)
+			fixture.Games.Clear();
+
+			if (numRings < 5 || numRings > 6)
 				return;
 
-			fixture.Teams.Clear();
-			fixture.Teams.Populate(teams);
+			PopulateBlocks(numRings);
 
-			fixture.Games.Clear();
-			PopulateBlocks();
+			int smallestBlockSize = rawBlocks.Keys.Min();
+			int largestBlockSize = rawBlocks.Keys.Max();
 
-			if (18 <= teams.Count && teams.Count <= 27 || teams.Count >= 36)
+			if ((smallestBlockSize <= teams.Count && teams.Count <= largestBlockSize) || smallestBlockSize * 2 <= teams.Count)  // We can handle if teams.Count is the size of a single block, or if teams.Count is large enough that we can use two or more blocks.
 			{
+				fixture.Teams.Clear();
+				fixture.Teams.Populate(teams);
+
 				int remainingPlayers = teams.Count;
-				int remainingBlocks = teams.Count / (numRings * 3);
+				int remainingBlocks = teams.Count / smallestBlockSize;
 				var blockSizes = new List<int>();
 
-				int firstBlock = ((remainingPlayers / remainingBlocks / 3) * 3) + remainingPlayers % 3;  // Blocks work better if they are multiples of 3, because each game is perfectly full. Put all the non-multiple-of-3-ness in one block.
+				int niceMultiple = numRings % 2 == 0 ? numRings / 2 : numRings;  // If there are _n_ rings, then it's nice to choose blocks that have a multiple of _n_ players, because each game is perfectly full. Special case: if _n_ is even, then half _n_ works fine, because each player plays 6 times, and, um, maths.
+				int firstBlock = ((remainingPlayers / remainingBlocks / niceMultiple) * niceMultiple) + remainingPlayers % niceMultiple;  // Put all the non-multiple-of-_n_-ness in one block, so every other block can be nice.
 				blockSizes.Add(firstBlock);
 				remainingPlayers -= firstBlock;
 				remainingBlocks--;
 
-				// Figure out the sizes for the remaining blocks.
+				// Figure out the sizes we will use for the remaining blocks.
 				while (remainingPlayers > 0)
 				{
-					int nextBlock = (remainingPlayers / remainingBlocks / 3) * 3;
+					int nextBlock = (remainingPlayers / remainingBlocks / niceMultiple) * niceMultiple;
 					blockSizes.Add(nextBlock);
 					remainingPlayers -= nextBlock;
 					remainingBlocks--;
+				}
+
+				if (blockSizes.Any(b => !rawBlocks.ContainsKey(b)))
+				{
+					// We have failed, because the cleverness to make most block sizes nice multiples of _n_ has caused us to have at least one block that is not in our dictionary of blocks available to use.
+					// So try again, without the cleverness.
+
+					remainingPlayers = teams.Count;
+					remainingBlocks = teams.Count / smallestBlockSize;
+					blockSizes.Clear();
+
+					while (remainingPlayers > 0)
+					{
+						int nextBlock = remainingPlayers / remainingBlocks;
+						blockSizes.Add(nextBlock);
+						remainingPlayers -= nextBlock;
+						remainingBlocks--;
+					}
+				}
+
+				if (blockSizes.Any(b => !rawBlocks.ContainsKey(b)))
+				{
+					Console.WriteLine("Could not generate ring grid for {0} teams, {1} rings, [2} games each.", teams.Count, numRings, gamesPerTeam);
+					return;
 				}
 
 				blockSizes.Sort((x, y) => y - x);  // Largest first.
@@ -50,7 +78,7 @@ namespace Torn5
 					teamOffset += blockSize;
 				}
 
-				// Interleave those FixtureGame's into the fixture.
+				// Interleave those FixtureGame's to make the fixture.
 				for (int game = 0; game < fixtureBlocks.Max(fb => fb.Count); game++)
 					for (int block = 0; block < blockSizes.Count; block++)
 						if (fixtureBlocks[block].Valid(game))
@@ -97,9 +125,107 @@ namespace Torn5
 
 		/// <summary>Create the blocks that we will build the ring grid fixture out of.
 		/// The number indicates which colour ring they are playing in, with 0 indicating a bye -- we'll convert the numbers to Colours in PopulateBlock.</summary>
-		void PopulateBlocks()
+		void PopulateBlocks(int rings)
 		{
-			PopulateBlock(18, new List<int>() {
+			if (rings == 5)
+			{
+				PopulateBlock(16, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,
+				1,2,5,0,1,5,2,4,3,4,5,3,2,3,4,1,
+				5,1,0,2,3,4,2,3,1,1,3,5,5,2,4,4,
+				3,1,4,3,1,5,2,4,0,5,2,1,4,5,3,2,
+				4,1,3,5,3,4,3,4,2,5,2,0,5,1,2,1,
+				2,1,3,1,4,5,5,1,4,3,2,5,4,2,0,3,
+				0,0,1,2,0,0,0,0,2,0,0,1,0,0,1,2 });
+
+				PopulateBlock(17, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,
+				1,2,3,5,3,4,0,4,0,1,4,5,1,2,3,2,5,
+				2,5,4,2,1,5,5,4,2,1,3,0,4,0,3,3,1,
+				3,0,5,2,3,4,5,2,1,5,0,1,1,4,2,3,4,
+				5,1,0,3,4,2,4,0,2,3,1,5,4,3,5,2,1,
+				0,4,5,4,0,5,2,1,3,1,2,5,4,2,3,1,3,
+				1,3,2,0,3,0,4,1,2,0,2,3,0,1,0,4,4 });
+
+				PopulateBlock(18, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,
+				0,3,5,2,3,4,1,2,4,0,1,5,5,0,4,1,2,3,
+				1,5,2,0,3,2,5,2,0,3,4,5,0,4,1,1,3,4,
+				5,0,4,4,2,1,0,3,2,3,4,5,1,2,0,3,1,5,
+				5,1,4,3,0,2,3,5,4,2,0,0,5,2,3,1,1,4,
+				5,4,2,4,1,0,2,0,5,2,5,0,1,4,3,1,3,3,
+				2,3,0,5,1,3,2,1,5,4,3,5,4,0,1,0,2,4,
+				0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0 });
+
+				PopulateBlock(19, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,0,
+				2,0,0,2,5,4,3,2,0,1,5,3,3,1,0,1,4,4,5,
+				5,1,4,0,0,1,3,1,5,5,3,0,4,0,2,2,4,3,2,
+				2,4,5,4,3,0,2,0,1,0,1,3,4,3,2,0,1,5,5,
+				5,0,4,3,4,1,0,2,0,2,0,1,2,5,4,3,3,5,1,
+				0,1,0,4,0,3,4,5,3,2,5,1,0,4,5,3,2,1,2,
+				4,2,3,5,1,4,2,1,5,0,3,0,4,3,0,2,1,0,5,
+				0,2,1,0,2,0,0,0,3,2,0,1,0,0,3,1,0,3,0 });
+
+				PopulateBlock(20, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,0,0,
+				1,2,0,0,0,4,3,4,5,2,3,4,0,1,3,1,2,5,5,0,
+				5,0,4,2,3,5,1,0,0,4,5,2,1,0,0,4,1,2,3,3,
+				0,5,0,2,1,3,0,1,3,0,0,4,4,1,2,5,2,5,4,3,
+				4,3,5,4,0,5,4,2,1,1,3,0,3,1,2,0,5,0,0,2,
+				0,2,3,0,5,0,0,4,5,0,3,1,4,3,2,5,1,4,2,1,
+				1,0,2,2,1,3,5,4,2,3,4,0,0,0,0,4,1,5,3,5,
+				3,5,4,2,5,0,1,0,0,3,0,5,3,1,4,2,0,4,1,2 });
+
+				PopulateBlock(21, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,0,0,0,
+				0,0,3,0,2,5,1,4,5,0,5,0,1,2,0,1,2,3,3,4,4,
+				2,3,0,3,1,0,1,0,0,4,5,2,0,4,3,5,2,5,0,4,1,
+				0,3,2,5,3,1,0,4,2,5,0,3,2,0,4,5,4,0,1,0,1,
+				3,5,0,2,4,1,5,0,2,0,4,0,4,3,1,0,0,5,2,1,3,
+				4,5,2,0,0,3,0,3,5,3,2,1,1,0,0,4,5,0,4,1,2,
+				0,0,0,5,4,3,3,5,1,2,0,3,0,5,4,4,2,1,2,1,0,
+				1,4,3,1,0,0,3,2,0,0,2,0,1,3,0,4,5,5,2,4,5,
+				2,0,1,0,0,0,0,0,0,2,0,1,0,0,1,0,0,2,0,0,0 });
+
+				PopulateBlock(22, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,0,0,0,0,
+				0,3,0,4,0,0,0,5,0,5,0,4,2,5,1,1,1,2,2,3,3,4,
+				5,3,4,0,1,4,5,0,1,0,1,2,0,0,2,3,4,3,5,2,0,0,
+				3,0,5,1,2,0,0,2,0,3,4,0,3,5,4,0,1,0,5,1,4,2,
+				5,1,0,0,0,4,4,0,5,0,2,1,2,1,0,2,3,5,0,4,3,3,
+				2,3,5,5,4,2,3,2,0,1,0,0,3,0,1,4,0,5,4,0,0,1,
+				0,0,1,2,0,5,1,2,4,0,3,5,0,4,0,1,4,5,0,3,2,3,
+				4,2,0,4,2,3,0,0,1,5,4,0,1,0,2,3,5,0,5,0,3,1,
+				0,0,3,0,3,0,2,1,4,3,0,4,0,2,0,0,0,1,4,1,2,0 });
+
+				PopulateBlock(23, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,0,0,0,0,0,
+				0,1,4,5,3,0,3,4,0,0,0,2,0,0,5,1,1,2,2,3,4,5,0,
+				5,1,0,2,0,1,0,0,2,4,3,0,4,1,0,5,3,2,0,0,3,4,5,
+				0,2,5,0,2,1,4,2,3,5,1,3,1,4,5,0,0,0,4,3,0,0,0,
+				4,0,2,3,1,0,0,0,1,5,3,0,0,5,0,1,4,2,0,3,5,4,2,
+				0,2,0,0,0,4,4,1,2,0,0,5,0,1,3,4,5,0,2,3,3,1,5,
+				1,0,4,5,4,1,3,2,0,2,4,0,5,0,3,0,0,1,0,2,5,0,3,
+				4,3,5,0,2,0,0,0,4,4,1,2,3,0,2,1,5,3,5,0,0,1,0,
+				2,0,0,3,0,5,1,4,0,0,0,3,4,3,0,4,1,1,2,2,5,0,5,
+				0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1 });
+
+				PopulateBlock(24, new List<int>() {
+				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,0,0,0,0,0,0,0,0,0,
+				0,0,0,0,2,4,0,5,0,0,1,5,1,0,0,1,2,2,3,3,3,4,4,5,
+				5,2,1,1,0,0,2,0,3,5,0,0,0,4,5,3,4,0,3,1,0,4,0,2,
+				1,0,5,0,5,3,1,4,0,0,3,2,5,0,0,4,0,2,0,4,1,0,2,3,
+				4,1,2,5,0,0,0,0,1,3,0,4,0,4,5,0,2,3,2,0,5,3,1,0,
+				5,4,0,0,3,4,2,0,0,0,2,0,4,0,3,1,0,5,5,2,1,1,0,3,
+				0,5,1,5,4,2,0,4,2,2,0,3,0,1,3,3,5,0,0,0,4,0,1,0,
+				1,0,0,4,0,0,3,2,0,5,2,0,1,3,0,0,2,4,3,5,0,1,5,4,
+				0,3,2,0,3,5,0,0,1,0,0,1,4,0,2,5,1,5,0,3,4,2,0,4,
+				0,0,0,1,0,0,1,2,3,2,3,0,0,3,0,0,0,0,2,0,0,0,1,0 });
+			}
+			else if (rings == 6)
+			{
+				PopulateBlock(18, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,
 				1,3,4,1,2,3,3,5,6,2,4,5,1,4,6,2,5,6,
 				2,3,4,1,2,6,5,1,3,6,2,5,4,1,5,3,6,4,
@@ -107,7 +233,7 @@ namespace Torn5
 				1,5,2,5,2,3,4,6,1,5,4,3,3,1,6,6,2,4,
 				2,3,5,6,1,5,2,1,6,2,3,4,3,4,5,4,6,1 });
 
-			PopulateBlock(19, new List<int>() {
+				PopulateBlock(19, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,
 				1,2,5,1,3,4,0,4,5,4,6,5,1,2,6,2,3,6,3,
 				5,2,6,4,2,0,1,6,3,2,3,4,1,5,6,1,3,5,4,
@@ -116,7 +242,7 @@ namespace Torn5
 				2,1,5,4,2,6,5,4,3,3,4,6,3,5,6,2,0,1,1,
 				0,0,0,0,0,2,1,0,2,0,0,0,0,0,1,0,1,0,2 });
 
-			PopulateBlock(20, new List<int>() {
+				PopulateBlock(20, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,
 				2,3,6,1,3,5,3,4,6,1,4,5,1,2,4,0,0,5,2,6,
 				2,1,0,1,3,5,4,2,5,2,5,3,0,6,4,1,6,4,3,6,
@@ -125,7 +251,7 @@ namespace Torn5
 				6,5,2,3,0,6,4,3,1,1,5,4,4,2,0,2,3,1,5,6,
 				1,0,3,2,1,0,0,0,2,0,0,0,4,2,3,4,1,0,3,4 });
 
-			PopulateBlock(21, new List<int>() {
+				PopulateBlock(21, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,
 				2,3,4,3,4,5,0,1,4,3,5,6,2,5,6,0,0,2,1,1,6,
 				0,3,6,4,3,2,1,2,0,2,0,1,3,4,6,5,6,1,4,5,5,
@@ -134,7 +260,7 @@ namespace Torn5
 				6,2,3,0,0,0,4,1,5,3,2,6,5,3,4,4,5,1,6,2,1,
 				1,6,4,1,3,2,5,4,2,5,4,0,0,6,3,2,1,0,5,3,6 });
 
-			PopulateBlock(22, new List<int>() {
+				PopulateBlock(22, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,0,
 				0,5,6,1,4,6,2,4,5,0,2,3,0,1,2,0,3,6,1,3,4,5,
 				1,6,0,6,3,0,3,2,1,6,5,2,2,4,0,1,5,4,5,3,0,4,
@@ -144,7 +270,7 @@ namespace Torn5
 				6,5,0,4,6,1,2,4,3,0,0,5,2,3,1,4,2,6,5,0,3,1,
 				0,0,1,0,0,0,0,0,0,2,0,0,1,0,0,0,0,0,0,1,2,2 });
 
-			PopulateBlock(23, new List<int>() {
+				PopulateBlock(23, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,0,0,
 				1,3,6,0,1,0,4,2,5,0,0,2,5,6,2,6,0,4,1,3,3,4,5,
 				4,0,2,5,6,3,5,2,0,1,6,4,3,0,1,0,5,2,3,1,4,6,0,
@@ -154,7 +280,7 @@ namespace Torn5
 				3,0,5,1,2,0,4,6,3,1,3,0,4,0,5,0,6,2,1,4,6,5,2,
 				0,1,0,2,0,3,0,0,0,0,0,3,0,1,2,3,4,0,4,4,0,1,2 });
 
-			PopulateBlock(24, new List<int>() {
+				PopulateBlock(24, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,0,0,0,
 				0,2,3,0,0,5,0,0,1,4,3,1,1,5,0,2,3,6,2,4,4,5,6,6,
 				1,0,5,3,6,1,6,5,3,3,0,0,4,2,1,4,0,0,2,4,0,6,2,5,
@@ -164,7 +290,7 @@ namespace Torn5
 				5,3,6,0,0,3,6,5,3,5,0,2,4,2,1,0,1,2,1,6,4,0,0,4,
 				0,0,0,4,2,3,4,6,0,0,3,6,1,0,5,3,1,2,6,2,5,1,5,4 });
 
-			PopulateBlock(25, new List<int>() {
+				PopulateBlock(25, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,0,0,0,0,
 				2,3,0,6,3,4,6,1,0,0,0,0,5,6,0,5,2,0,1,1,2,3,4,4,5,
 				0,4,1,6,0,5,0,0,5,3,4,1,3,0,2,4,2,5,3,0,0,6,6,2,1,
@@ -175,7 +301,7 @@ namespace Torn5
 				4,3,0,6,2,3,0,1,0,3,5,2,2,4,6,0,0,0,4,0,5,1,5,1,6,
 				0,0,2,0,0,0,0,0,1,0,0,0,0,0,2,0,0,0,0,1,2,0,0,0,1 });
 
-			PopulateBlock(26, new List<int>() {
+				PopulateBlock(26, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,0,0,0,0,0,
 				5,3,4,6,0,0,1,0,0,0,6,0,1,3,0,4,0,6,1,2,2,2,3,4,5,5,
 				0,3,0,0,2,1,4,1,2,6,5,4,3,4,5,0,2,0,6,1,0,5,0,0,3,6,
@@ -186,7 +312,7 @@ namespace Torn5
 				0,2,5,0,5,1,3,0,0,2,1,6,6,4,3,0,6,4,5,0,1,0,0,2,4,3,
 				2,0,0,2,0,0,0,4,1,0,0,0,0,0,3,1,0,3,0,2,3,4,1,4,0,0 });
 
-			PopulateBlock(27, new List<int>() {
+				PopulateBlock(27, new List<int>() {
 				1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,0,0,0,0,0,0,0,0,0,
 				0,5,6,3,2,6,6,0,0,5,0,0,0,0,0,2,0,1,1,1,2,3,3,4,4,4,5,
 				2,0,0,0,3,5,0,6,3,0,5,4,2,3,1,0,4,0,2,6,6,0,1,5,1,0,4,
@@ -196,6 +322,7 @@ namespace Torn5
 				3,2,0,4,3,0,2,0,0,4,1,5,0,0,4,0,6,1,5,0,5,6,1,2,6,3,0,
 				0,3,4,5,0,1,0,6,2,0,2,1,5,3,0,3,0,0,0,5,2,6,1,0,4,6,4,
 				2,0,5,0,3,0,2,0,1,4,0,0,6,4,3,0,5,1,5,4,0,1,6,3,0,6,2 });
+			}
 		}
 
 		/// <summary>Convert a list of integers to a two-dimensional grid of Colours, and add it to our dictionary of blocks.</summary>
