@@ -558,7 +558,7 @@ namespace Torn.UI
 		private void GenerateRingGrid()
 		{
 			var grid = new RingGrid();
-			grid.GenerateRingGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)numericRings.Value, (int)gamesPerTeamInput.Value, gameDateTime.Value, (int)minBetween.Value);
+			grid.GenerateRingGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)numericRings.Value, (int)gamesPerTeamInput.Value, gameDateTime.Value, (int)minBetween.Value, referee.Checked);
 
 			RefreshReports();
 		}
@@ -621,20 +621,8 @@ namespace Torn.UI
 
 			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
 
-			textBoxGames.Text = Holder.Fixture.Games.ToString();
-			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
-			if (outputGrid.Checked && outputList.Checked)
-			{
-				reportTeamsList.Report = Reports.FixtureCombined(Holder.Fixture, Holder.League);
-			}
-			else if (outputList.Checked)
-			{
-				reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
-			}
-			else if (outputGrid.Checked)
-			{
-				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
-			}
+			RefreshReports();
+
 			buttonGenerate.Text = "Generate";
 			buttonGenerate.Enabled = true;
 		}

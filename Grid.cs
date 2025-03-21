@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Torn;
 
 namespace Torn5
 {
 	class RingGrid
 	{
-		public void GenerateRingGrid(League league, Fixture fixture, List<LeagueTeam> teams, int numRings, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames)
+		/// <summary>Generate a Lord of the Ring-style fixture, with multiple ring games running in parallel.</summary>
+		public void GenerateRingGrid(League league, Fixture fixture, List<LeagueTeam> teams, int numRings, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames, bool referees)
 		{
 			fixture.Games.Clear();
 
@@ -91,7 +93,45 @@ namespace Torn5
 					fg.Time = time;
 					time = time.AddMinutes(minutesBetweenGames);
 				}
+
+				if (referees)
+					AddReferees(fixture, teams, numRings, blockSizes);
 			}
+		}
+
+		/// <summary>Add referees to games.</summary>
+		private void AddReferees(Fixture fixture, List<LeagueTeam> teams, int numRings, List<int> blockSizes)
+		{
+			FixtureGame thisGame;
+			FixtureGame nextGame;
+
+			// Add referees: each player refs the game before they play.
+			for (int game = 0; game < fixture.Games.Count - 1; game++)
+			{
+				thisGame = fixture.Games[game];
+				nextGame = fixture.Games[game + 1];
+
+				foreach (var player in nextGame.Teams.Keys)
+					AddReferee(thisGame, player);
+			}
+
+			thisGame = fixture.Games.Last();
+
+			// Add referees for the last game.
+
+			int lastGameRefereeeOffset = blockSizes.Count >= 2 && blockSizes[0] > blockSizes[1] ? blockSizes[0] : 0;  // If first block are playing in the last game, they are unavailable to referee it, so use players from the second block.
+
+			for (int player = lastGameRefereeeOffset; player < lastGameRefereeeOffset + numRings * 3; player++)
+				AddReferee(thisGame, teams[player]);
+		}
+
+		/// <summary>Add one referee to one game, unless that would be a bad idea.</summary>
+		private bool AddReferee(FixtureGame thisGame, LeagueTeam team)
+		{
+			bool b = !thisGame.Teams.Keys.Any(k => k.TeamId == team.TeamId) && !team.Name.EndsWith("*");  // If they're already in this game, or they're marked as a first-time player, don't add them.
+			if (b)
+				thisGame.Teams.Add(team, Colour.Referee);
+			return b;
 		}
 
 		/// <summary>Convert a RawBlock to a FixtureGame with actual teams filled in.</summary>
