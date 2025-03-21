@@ -315,10 +315,13 @@ namespace Torn.Report
 			return report;
 		}
 
+		private enum Found { None, One, MoreThanOne }
+		private class FoundColour { public Found Found; public Colour Colour; }
+
 		/// <summary>Fixtures. Each row is a game. CSS stuff is consumed by Javascript added in WebOutput.cs' ReportPages.FixturePage.</summary>
 		public static ZoomReport FixtureList(Fixture fixture, League league)
 		{
-			bool hasMultipleDates = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
+		bool hasMultipleDates = fixture.Games.Count > 1 && fixture.Games.First().Time.Date < fixture.Games.Last().Time.Date;
 			string dateText = hasMultipleDates || fixture.Games.Count == 0 ? "" : " " + fixture.Games.First().Time.ToShortDateString();
 
 			ZoomReport report = new ZoomReport("Fixtures for " + league.Title + dateText, "Time", "left")
@@ -337,8 +340,12 @@ namespace Torn.Report
 
 			int maxTeams = fixture.Games.Count == 0 ? 0 : fixture.Games.Max(x => x.Teams.Count());
 
+			var columnColours = new List<FoundColour>();
 			for (int i = 0; i < maxTeams; i++)
+			{
 				report.AddColumn(new ZColumn("Team", ZAlignment.Left));
+				columnColours.Add(new FoundColour());
+			}
 
 			foreach (var fg in fixture.Games)
 			{
@@ -352,13 +359,24 @@ namespace Torn.Report
 					timeCell.Hyper = GameHyper(match[fg]);
 				row.Add(timeCell);
 
-				foreach (var kv in fg.Teams.OrderBy(t => t.Value).ThenBy(t => t.Key.Name))
+				var gameByColour = fg.Teams.OrderBy(t => t.Value).ThenBy(t => t.Key.Name).ToList();
+				for (int t = 0; t < gameByColour.Count(); t++)
 				{
+					var kv = gameByColour[t];
+
 					ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
 					{
 						Hyper = "fixture.html?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
 					};
 					row.Add(teamCell);
+
+					if (columnColours[t].Found == Found.None)
+					{
+						columnColours[t].Found = Found.One;
+						columnColours[t].Colour = kv.Value;
+					}
+					else if (columnColours[t].Found == Found.One && columnColours[t].Colour != kv.Value)
+						columnColours[t].Found = Found.MoreThanOne;
 				}
 
 				row.CssClass = String.Concat(fg.Teams.Keys.Select(k => " t" + k.TeamId.ToString(CultureInfo.InvariantCulture)));
@@ -366,7 +384,11 @@ namespace Torn.Report
 				report.Rows.Add(row);
 			}
 
-			return report;
+			for (int i = 0; i < maxTeams; i++)
+				if (columnColours[i].Found == Found.One)
+					report.Columns[i + 1].Text = columnColours[i].Colour.ToString();
+
+				return report;
 		}
 
 		public static ZoomReport FixtureCombined(Fixture fixture, League league)
