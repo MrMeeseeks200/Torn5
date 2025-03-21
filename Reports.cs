@@ -385,7 +385,7 @@ namespace Torn.Report
 			}
 
 			for (int i = 0; i < maxTeams; i++)
-				if (columnColours[i].Found == Found.One)
+				if (columnColours[i].Found == Found.One && columnColours[i].Colour != Colour.None)
 					report.Columns[i + 1].Text = columnColours[i].Colour.ToString();
 
 				return report;
