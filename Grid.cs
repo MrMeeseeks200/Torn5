@@ -8,7 +8,8 @@ namespace Torn5
 {
 	class RingGrid
 	{
-		/// <summary>Generate a Lord of the Ring-style fixture, with multiple ring games running in parallel.</summary>
+		/// <summary>Generate a Lord of the Ring-style fixture, with multiple ring games running in parallel.
+		/// "team" and "player" are a bit interchangeable in this code, because Lord of the Ring is a solo event: each "team" has just one player in it.</summary>
 		public void GenerateRingGrid(League league, Fixture fixture, List<LeagueTeam> teams, int numRings, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames, bool referees)
 		{
 			fixture.Games.Clear();
@@ -65,7 +66,7 @@ namespace Torn5
 
 				if (blockSizes.Any(b => !rawBlocks.ContainsKey(b)))
 				{
-					Console.WriteLine("Could not generate ring grid for {0} teams, {1} rings, [2} games each.", teams.Count, numRings, gamesPerTeam);
+					Console.WriteLine("Could not generate ring grid for {0} teams, {1} rings, {2} games each.", teams.Count, numRings, gamesPerTeam);
 					return;
 				}
 
@@ -95,15 +96,34 @@ namespace Torn5
 				}
 
 				if (referees)
-					AddReferees(fixture, teams, numRings, blockSizes);
+					AddReferees(fixture, teams, numRings, fixtureBlocks.Count >= 2 && fixtureBlocks[0].Count > fixtureBlocks[1].Count ? blockSizes[0] : 0);
 			}
 		}
 
-		/// <summary>Add referees to games.</summary>
-		private void AddReferees(Fixture fixture, List<LeagueTeam> teams, int numRings, List<int> blockSizes)
+		class RefCount { public LeagueTeam Team; public int Count; }
+
+		class RefCounts : List<RefCount>
+		{
+			/// <summary>Return this team's record. If this team is not in the list, we return null.</summary>
+			public RefCount Find(LeagueTeam team)
+			{
+				return this.Find(rc => rc.Team == team);
+			}
+		}
+
+		/// <summary>Add referees to games.
+		/// Don't use players whose alias ends in * as referees, as the * denotes an inexperienced player.</summary>
+		/// <param name="lastGameRefereeOffset">For the last game, where should we pull referees from? If first block has more games, that means they
+		/// are playing in the last game, and are unavailable to referee it, so pass a value here that points to players from the second block.</param>
+		private void AddReferees(Fixture fixture, List<LeagueTeam> teams, int numRings, int lastGameRefereeOffset)
 		{
 			FixtureGame thisGame;
 			FixtureGame nextGame;
+
+			var refCounts = new RefCounts();  // Track how many times each player is refereeing.
+			foreach (var team in teams)
+				if (!IsN00b(team))
+					refCounts.Add(new RefCount() { Team = team, Count = 0 });
 
 			// Add referees: each player refs the game before they play.
 			for (int game = 0; game < fixture.Games.Count - 1; game++)
@@ -111,27 +131,64 @@ namespace Torn5
 				thisGame = fixture.Games[game];
 				nextGame = fixture.Games[game + 1];
 
-				foreach (var player in nextGame.Teams.Keys)
-					AddReferee(thisGame, player);
+				foreach (var player in nextGame.Teams.Keys.Where(t => CanReferee(thisGame, t)))
+				{
+					thisGame.Teams.Add(player, Colour.Referee);
+					refCounts.Find(player).Count++;
+				}
 			}
 
 			thisGame = fixture.Games.Last();
 
 			// Add referees for the last game.
+			for (int player = lastGameRefereeOffset; player < lastGameRefereeOffset + thisGame.Teams.Count(t => t.Value != Colour.Referee); player++)
+				if (CanReferee(thisGame, teams[player]))
+				{
+					thisGame.Teams.Add(teams[player], Colour.Referee);
+					refCounts.Find(teams[player]).Count++;
+				}
 
-			int lastGameRefereeeOffset = blockSizes.Count >= 2 && blockSizes[0] > blockSizes[1] ? blockSizes[0] : 0;  // If first block are playing in the last game, they are unavailable to referee it, so use players from the second block.
-
-			for (int player = lastGameRefereeeOffset; player < lastGameRefereeeOffset + numRings * 3; player++)
-				AddReferee(thisGame, teams[player]);
+			// Look for games that didn't get enough referees and give them more.
+			bool assignedAnyRefs = false;
+			var gamesThatNeedRefs = fixture.Games.Where(fg => fg.Teams.Count(t => t.Value == Colour.Referee) < fg.Teams.Count(t => t.Value != Colour.Referee)).ToList();  // We desire one referee per player.
+			while (gamesThatNeedRefs.Any())
+			{
+				for (int i = 0; i < gamesThatNeedRefs.Count; i++)
+				{
+					thisGame = gamesThatNeedRefs[i];
+					int refsDesired = thisGame.Teams.Count(t => t.Value != Colour.Referee) - thisGame.Teams.Count(t => t.Value == Colour.Referee);
+					refCounts.Sort((x, y) => x.Count - y.Count);  // Smallest first.
+					var refsAvailableForThisGame = refCounts.Where(rc => CanReferee(thisGame, rc.Team)).ToList();
+					while (refsDesired > 0 && refsAvailableForThisGame.Any())
+					{
+						RefCount firstRef = refsAvailableForThisGame.First();
+						thisGame.Teams.Add(firstRef.Team, Colour.Referee);
+						refsAvailableForThisGame.Remove(firstRef);
+						firstRef.Count++;  // Update their entry in the master refCounts list.
+						assignedAnyRefs = true;
+						refsDesired--;
+						if (refsDesired == 0)
+						{
+							gamesThatNeedRefs.Remove(thisGame);
+							i--;
+						}
+					}
+				}
+				if (!assignedAnyRefs)
+					return;  // If we go through all the games without making a single match, we just need to stop: there are no remaining players who can ref the games that need refs.
+			}
 		}
 
-		/// <summary>Add one referee to one game, unless that would be a bad idea.</summary>
-		private bool AddReferee(FixtureGame thisGame, LeagueTeam team)
+		/// <summary>Return true if this player is available to referee this game.</summary>
+		private bool CanReferee(FixtureGame game, LeagueTeam team)
 		{
-			bool b = !thisGame.Teams.Keys.Any(k => k.TeamId == team.TeamId) && !team.Name.EndsWith("*");  // If they're already in this game, or they're marked as a first-time player, don't add them.
-			if (b)
-				thisGame.Teams.Add(team, Colour.Referee);
-			return b;
+			return !game.Teams.Keys.Any(k => k.TeamId == team.TeamId) && !IsN00b(team);  // If they're already in this game (as a player or as a referee), or they're marked as a first-time player, they can't referee this game.
+		}
+
+		/// <summary>Returns true if the player has a * on the end of their alias, which indicates they're a first-time player.</summary>
+		private bool IsN00b(LeagueTeam team)
+		{
+			return team.Name.EndsWith("*");
 		}
 
 		/// <summary>Convert a RawBlock to a FixtureGame with actual teams filled in.</summary>
