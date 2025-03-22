@@ -59,6 +59,9 @@ namespace Torn.UI
 
 			datePicker.Value = DateTime.Now.Date;
 			timePicker.CustomFormat = CultureInfo.CurrentUICulture.DateTimeFormat.ShortTimePattern;
+			DateTime dt = DateTime.Now;
+			gameDateTime.Value = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 0, dt.Kind).AddMinutes(1);  // Don't include seconds / milliseconds.
+
 			leftButton = Colour.Red;
 			middleButton = Colour.Blue;
 			rightButton = Colour.Green;

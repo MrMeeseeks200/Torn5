@@ -357,12 +357,12 @@ namespace Torn.UI
 			this.minBetween.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.minBetween.Location = new System.Drawing.Point(104, 710);
 			this.minBetween.Maximum = new decimal(new int[] {
-            1000,
+            9999,
             0,
             0,
             0});
 			this.minBetween.Minimum = new decimal(new int[] {
-            10,
+            1,
             0,
             0,
             0});
@@ -584,7 +584,7 @@ namespace Torn.UI
             0,
             0});
 			this.gamesPerTeamInput.Name = "gamesPerTeamInput";
-			this.gamesPerTeamInput.Size = new System.Drawing.Size(89, 20);
+			this.gamesPerTeamInput.Size = new System.Drawing.Size(83, 20);
 			this.gamesPerTeamInput.TabIndex = 14;
 			this.gamesPerTeamInput.Value = new decimal(new int[] {
             3,
