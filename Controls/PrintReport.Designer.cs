@@ -193,7 +193,7 @@ namespace Torn5.Controls
             this.radioTables.Size = new System.Drawing.Size(56, 32);
             this.radioTables.TabIndex = 2;
             this.radioTables.Tag = 1;
-            this.radioTables.Text = "HTML tables";
+            this.radioTables.Text = "HTML table";
             this.radioTables.UseVisualStyleBackColor = true;
             this.radioTables.CheckedChanged += new System.EventHandler(this.CheckedChanged);
             // 

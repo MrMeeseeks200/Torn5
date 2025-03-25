@@ -432,6 +432,7 @@ namespace Torn.UI
 			this.printReport1.Name = "printReport1";
 			this.printReport1.Size = new System.Drawing.Size(75, 513);
 			this.printReport1.TabIndex = 25;
+			this.printReport1.SaveHtmlTable += new System.EventHandler(this.PrintReportSaveHtmlTable);
 			// 
 			// reportTeamsList
 			// 

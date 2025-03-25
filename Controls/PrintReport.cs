@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -18,8 +17,36 @@ namespace Torn5.Controls
 	/// 
 	public partial class PrintReport : UserControl
 	{
-		[Browsable(true)]
+		[Browsable(true), Category("Data")]
 		public DisplayReport DisplayReport { get; set; }
+
+		bool fileNameSet = false;
+		string fileName;
+		[Browsable(false), Category("Data")]
+		public string FileName
+		{
+			get { return fileName; }
+
+			set
+			{
+				fileName = value;
+				saveFileDialog.InitialDirectory = Path.GetDirectoryName(value);
+				saveFileDialog.FileName = Path.GetFileName(value);
+				if (value != null)
+					fileNameSet = true;
+			}
+		}
+
+		[Browsable(true), Category("Action"), Description("Occurs when user clicks Save when HTML SVG is selected.")]
+		public event EventHandler SaveSvg;
+		[Browsable(true), Category("Action"), Description("Occurs when user clicks Save when HTML table is selected.")]
+		public event EventHandler SaveHtmlTable;
+		[Browsable(true), Category("Action"), Description("Occurs when user clicks Save when TSV is selected.")]
+		public event EventHandler SaveTsv;
+		[Browsable(true), Category("Action"), Description("Occurs when user clicks Save when CSV is selected.")]
+		public event EventHandler SaveCsv;
+		[Browsable(true), Category("Action"), Description("Occurs when user clicks Save when PNG is selected.")]
+		public event EventHandler SavePng;
 
 		readonly SaveFileDialog saveFileDialog = new SaveFileDialog();
 		readonly PrintDialog printDialog = new PrintDialog();
@@ -30,7 +57,6 @@ namespace Torn5.Controls
 			InitializeComponent();
 		}
 
-		string fileName;
 		private void ButtonSaveClick(object sender, EventArgs e)
 		{
 			var outputFormat = radioSvg.Checked ? OutputFormat.Svg :
@@ -39,26 +65,49 @@ namespace Torn5.Controls
 				radioCsv.Checked ? OutputFormat.Csv :
 				OutputFormat.Png;
 
-			string file = DisplayReport.Report.Title.Replace('/', '-').Replace(' ', '_') + "." + outputFormat.ToExtension();  // Replace / with - so dates still look OK, and  space with _ to make URLs easier if this file is uploaded to the web.
-			saveFileDialog.FileName = Path.GetInvalidFileNameChars().Aggregate(file, (current, c) => current.Replace(c, '_'));  // Replace all other invalid chars with _.
+			if (!fileNameSet && DisplayReport?.Report != null)
+			{
+				// Build a file name from report name and output type.
+				fileName = DisplayReport.Report.Title.Replace('/', '-').Replace(' ', '_') + "." + outputFormat.ToExtension();  // Replace / with - so dates still look OK, and space with _ to make URLs easier if this file is uploaded to the web.
+				fileName = Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c, '_'));  // Replace all other invalid chars with _.
+				saveFileDialog.FileName = fileName;
+			}
+
+			string path = Path.GetDirectoryName(fileName);
+			if (!string.IsNullOrWhiteSpace(path))
+				Directory.CreateDirectory(path);
 
 			if (saveFileDialog.ShowDialog() == DialogResult.OK)
 			{
-				if (radioPng.Checked)
+				fileName = saveFileDialog.FileName;
+
+				if (outputFormat == OutputFormat.Png)
 				{
-					if (checkBoxScale.Checked)
-						DisplayReport.Report.ToBitmap((float)numericScale.Value).Save(saveFileDialog.FileName);
+					if (this.SavePng != null)
+						this.SavePng(this, new EventArgs());
+					else if (checkBoxScale.Checked)
+						DisplayReport.Report.ToBitmap((float)numericScale.Value).Save(fileName);
 					else
-						DisplayReport.BackgroundImage.Save(saveFileDialog.FileName);
+						DisplayReport.BackgroundImage.Save(fileName);
 				}
 				else
 				{
-					var reports = new ZoomReports() { DisplayReport.Report };
+					if (this.SaveSvg != null && outputFormat == OutputFormat.Svg)
+						this.SaveSvg(this, new EventArgs());
+					else if (this.SaveHtmlTable != null && outputFormat == OutputFormat.HtmlTable)
+						this.SaveHtmlTable(this, new EventArgs());
+					else if (this.SaveTsv != null && outputFormat == OutputFormat.Tsv)
+						this.SaveTsv(this, new EventArgs());
+					else if (this.SaveCsv != null && outputFormat == OutputFormat.Csv)
+						this.SaveCsv(this, new EventArgs());
+					else
+					{
+						var reports = new ZoomReports() { DisplayReport.Report };
 
-					using (StreamWriter sw = File.CreateText(saveFileDialog.FileName))
-						sw.Write(reports.ToOutput(outputFormat));
+						using (StreamWriter sw = File.CreateText(fileName))
+							sw.Write(reports.ToOutput(outputFormat));
+					}
 				}
-				fileName = saveFileDialog.FileName;
 				buttonShow.Enabled = true;
 			}
 		}

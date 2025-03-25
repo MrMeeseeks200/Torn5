@@ -179,7 +179,7 @@ namespace Torn.Report
 				Reports.FixtureList(fixture, league),
 				Reports.FixtureGrid(fixture, league),
 				new ZoomHtmlInclusion(@"
-</div><br/><a href=""index.html"">Index</a> <a href=""fixture.html"">Fixture</a>
+</div><br/><a href=""index.html"">Index</a>
 
 <script>
   var tables = document.querySelectorAll('.fixturelist');
@@ -202,7 +202,7 @@ namespace Torn.Report
   if (team) {
     var tables = document.querySelectorAll('.fixturelist');
       for (const table of tables)
-        for (const tr of table.querySelectorAll('tr:not(.t' + team + ')'))
+        for (const tr of table.querySelectorAll('tbody > tr:not(.t' + team + ')'))
           tr.style = 'display:none';
 
     var tables = document.querySelectorAll('.fixturegrid');
@@ -904,12 +904,15 @@ Base hits and destroys are shown with a mark in the colour of the base hit. Base
 		public static void ExportFixture(string path, Holder holder)
 		{
 			if (path != null)
-			{
-				Directory.CreateDirectory(Path.Combine(path, holder.Key));
+				ExportFixtureToFile(Path.Combine(path, holder.Key, "fixture." + holder.ReportTemplates.OutputFormat.ToExtension()), holder);
+		}
 
-				using (StreamWriter sw = File.CreateText(Path.Combine(path, holder.Key, "fixture." + holder.ReportTemplates.OutputFormat.ToExtension())))
-					sw.Write(ReportPages.FixturePage(holder.Fixture, holder.League));
-			}
+		public static void ExportFixtureToFile(string fileName, Holder holder)
+		{
+			Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+
+			using (StreamWriter sw = File.CreateText(fileName))
+				sw.Write(ReportPages.FixturePage(holder.Fixture, holder.League));
 		}
 
 		static void UploadFile(WebClient client, string to, string from, string file)

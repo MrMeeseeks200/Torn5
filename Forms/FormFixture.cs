@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using Torn;
 using Torn.Report;
 using Torn5;
+using Zoom;
 
 namespace Torn.UI
 {
@@ -24,16 +25,36 @@ namespace Torn.UI
 			set
 			{
 				holder = value;
+
 				if (frameFinals1 != null)
 					frameFinals1.Games = holder.League.AllGames;
 				if (framePyramid1 != null)
 					framePyramid1.Holder = holder;
 				if (framePyramidRound1 != null)
 					framePyramidRound1.Holder = holder;
+
+				SetExportFileName();
 			}
 		}
 
-		public string ExportFolder { get; set; }
+		string exportFolder;
+		public string ExportFolder
+		{
+			get { return exportFolder; }
+
+			set
+			{
+				exportFolder = value;
+
+				SetExportFileName();
+			}
+		}
+
+		private void SetExportFileName()
+		{
+			if (!string.IsNullOrEmpty(exportFolder) && holder != null)
+				printReport1.FileName = System.IO.Path.Combine(ExportFolder, holder.Key, "fixture." + holder.ReportTemplates.OutputFormat.ToExtension());
+		}
 
 		private List<List<int>> previousGrid;
 		private double previousBestScore;
@@ -824,6 +845,11 @@ namespace Torn.UI
 
 				}) != null;
 			});
+		}
+
+		private void PrintReportSaveHtmlTable(object sender, EventArgs e)
+		{
+			ExportPages.ExportFixtureToFile(printReport1.FileName, holder);
 		}
 
 		void TextBoxKeyDown(object sender, KeyEventArgs e)

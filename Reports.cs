@@ -269,7 +269,7 @@ namespace Torn.Report
 				var row = new ZRow();
 				var teamCell = new ZCell(ft.Name)
 				{
-					Hyper = "fixture.html?team=" + ft.TeamId.ToString(CultureInfo.InvariantCulture)
+					Hyper = "?team=" + ft.TeamId.ToString(CultureInfo.InvariantCulture)
 				};
 				row.Add(teamCell);
 				report.Rows.Add(row);
@@ -307,7 +307,7 @@ namespace Torn.Report
 				var ft = fixture.Teams[i];
 				var teamCell = new ZCell(ft.Name)
 				{
-					Hyper = "fixture.html?team=" + ft.TeamId.ToString(CultureInfo.InvariantCulture)
+					Hyper = "?team=" + ft.TeamId.ToString(CultureInfo.InvariantCulture)
 				};
 				report.Rows[i].Add(teamCell);
 			}
@@ -366,7 +366,7 @@ namespace Torn.Report
 
 					ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
 					{
-						Hyper = "fixture.html?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
+						Hyper = "?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
 					};
 					row.Add(teamCell);
 
@@ -437,7 +437,7 @@ namespace Torn.Report
 				{
 					ZCell teamCell = new ZCell(kv.Key.Name, kv.Value.ToColor())
 					{
-						Hyper = "fixture.html?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
+						Hyper = "?team=" + kv.Key.TeamId.ToString(CultureInfo.InvariantCulture)
 					};
 					row.Add(teamCell);
 					if (index == fg.Teams.Count - 1)
