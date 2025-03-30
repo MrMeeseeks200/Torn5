@@ -257,8 +257,15 @@ namespace Torn.Report
 		{
 			if (port != 0)
 			{
-				ws = new WebServer(SendResponse, "http://localhost:" + port.ToString(CultureInfo.InvariantCulture) + "/");
-				ws.Run();
+				try
+				{
+					ws = new WebServer(SendResponse, "http://localhost:" + port.ToString(CultureInfo.InvariantCulture) + "/");
+					ws.Run();
+				}
+				catch (Exception)
+				{
+					// Squish. Probably couldn't get the port because something else (maybe another copy of Torn) is using it.
+				}
 			}
 		}
 
