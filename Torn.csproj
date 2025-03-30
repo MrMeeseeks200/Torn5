@@ -325,7 +325,7 @@
     <Compile Include="Forms\NewVersion.Designer.cs">
       <DependentUpon>NewVersion.cs</DependentUpon>
     </Compile>
-    <Compile Include="Grid.cs" />
+    <Compile Include="RingGrid.cs" />
     <Compile Include="JsonServer.cs" />
     <Compile Include="Forms\MainForm1.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -345,6 +345,7 @@
       <DependentUpon>Torn5.settings</DependentUpon>
     </Compile>
     <Compile Include="Pyramid.cs" />
+    <Compile Include="TeamGrid.cs" />
     <Compile Include="TornTcpListener.cs" />
     <Compile Include="TornTcpServer.cs" />
     <Compile Include="Utility.cs" />
