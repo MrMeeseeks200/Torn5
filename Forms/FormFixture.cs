@@ -131,10 +131,17 @@ namespace Torn.UI
 			if (yellow.Checked) teamGrid.Colours.Add(Colour.Yellow);
 			if (referee.Checked) teamGrid.Colours.Add(Colour.Referee);
 
-			teamGrid.GenerateTeamGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)maxTime.Value * 1000, (int)gamesPerTeamInput.Value, gameDateTime.Value, (int)minBetween.Value);
-			continueGenerating.Enabled = false;
+			SetBusy(true);
+			try
+			{
+				teamGrid.GenerateTeamGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)maxTime.Value * 1000, (int)gamesPerTeamInput.Value, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value));
 
-			RefreshReports();
+				RefreshReports();
+			}
+			finally
+			{
+				SetBusy(false);
+			}
 
 			scoreLabel.Text = teamGrid.ScoreText;
 			scoreLabel.BackColor = teamGrid.ScoreColor;
@@ -159,23 +166,31 @@ namespace Torn.UI
 			}
 		}
 
+		private void SetBusy(bool busy)
+		{
+			buttonGenerate.Text = busy ? "Generating..." : "Generate";
+			buttonGenerate.Enabled = !busy;
+			continueGenerating.Enabled = !busy;
+			//UseWaitCursor = busy;
+			Cursor.Current = busy ? Cursors.WaitCursor : Cursors.Default;
+		}
+
 		private void ContinueGenerateClick(object sender, EventArgs e)
 		{
 			Holder.Fixture.Teams.Clear();
 			Holder.Fixture.Teams.Populate(fixtureSelectedTeams);
 			Holder.Fixture.Games.Clear();
-			buttonGenerate.Text = "Generating...";
-			buttonGenerate.Enabled = false;
-			continueGenerating.Enabled = false;
-			int maxMillis = (int)maxTime.Value * 1000;
-			List<List<int>> grid = teamGrid.ContinueMixing(maxMillis);
+			SetBusy(true);
+			try
+			{
+				teamGrid.ContinueMixing(Holder.Fixture, (int)maxTime.Value * 1000, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value));
 
-			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), teamGrid.TeamColours());
-
-			RefreshReports();
-
-			buttonGenerate.Text = "Generate";
-			buttonGenerate.Enabled = true;
+				RefreshReports();
+			}
+			finally
+			{
+				SetBusy(false);
+			}
 		}
 
 		void ButtonImportGamesClick(object sender, EventArgs e)
@@ -638,30 +653,5 @@ class TeamComparer : IComparer<LeagueTeam>
 		if (ix == -1) ix = 999999;
 		if (iy == -1) iy = 999999;
 		return ix - iy;
-	}
-}
-
-public static class ListExtensions
-{
-	public static List<List<T>> ChunkBy<T>(this List<T> source, int chunkSize)
-	{
-		return source
-			.Select((x, i) => new { Index = i, Value = x })
-			.GroupBy(x => x.Index / chunkSize)
-			.Select(x => x.Select(v => v.Value).ToList())
-			.ToList();
-	}
-	public static List<T> Uniq<T>(this List<T> source)
-	{
-		List<T> result = new List<T>();
-
-		foreach(T el in source)
-		{
-			bool exists = result.Contains(el);
-			if (!exists)
-				result.Add(el);
-		}
-		return result;
-
 	}
 }

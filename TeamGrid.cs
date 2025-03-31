@@ -23,7 +23,7 @@ namespace Torn5
 		private List<List<int>> previousExistingPlays;
 
 		/// <summary>Generate a team fixture via hill-climbing.</summary>
-		public void GenerateTeamGrid(League league, Fixture fixture, List<LeagueTeam> teams, int maxMillis, int gamesPerTeam, DateTime firstGameDateTime, int minutesBetweenGames)
+		public void GenerateTeamGrid(League league, Fixture fixture, List<LeagueTeam> teams, int maxMillis, int gamesPerTeam, DateTime firstGame, TimeSpan timeBetweenGames)
 		{
 			fixture.Teams.Clear();
 			fixture.Teams.Populate(teams);
@@ -43,12 +43,12 @@ namespace Torn5
 
 			List<List<int>> grid = GetGrid(fixture.Teams, teamsPerGame, GamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
 
-			fixture.Games.Parse(grid, fixture.Teams, firstGameDateTime, TimeSpan.FromMinutes(minutesBetweenGames), TeamColours());
+			GridToFixtureGames(grid, fixture, firstGame, timeBetweenGames);
 		}
 
 		void LogGrid<T>(List<List<T>> grid)
 		{
-			string str = "**********\n";
+			string str = "***Grid***\n";
 			foreach (List<T> list in grid)
 			{
 				foreach (T item in list)
@@ -61,14 +61,13 @@ namespace Torn5
 			Console.WriteLine(str);
 		}
 
-		List<T> FlattenGrid<T>(List<List<T>> grid)
+		int CountDistinct<T>(List<List<T>> grid)
 		{
-			List<T> flat = new List<T>();
+			var flat = new List<T>();
 			foreach (List<T> list in grid)
-			{
 				flat.AddRange(list);
-			}
-			return flat;
+
+			return flat.Distinct().Count();
 		}
 
 		List<List<T>> TransposeGrid<T>(List<List<T>> grid)
@@ -88,10 +87,11 @@ namespace Torn5
 			return ContinueMixing(bestGrid, gamesPerTeam, hasRef, existingPlays, maxMillis, bestScore);
 		}
 
-		public List<List<int>> ContinueMixing(int maxMillis)
+		public void ContinueMixing(Fixture fixture, int maxMillis, DateTime firstGame, TimeSpan timeBetweenGames)
 		{
 			bool hasRef = Colours.Contains(Colour.Referee);
-			return ContinueMixing(previousGrid, GamesPerTeam, hasRef, previousExistingPlays, maxMillis, previousBestScore);
+			var grid = ContinueMixing(previousGrid, GamesPerTeam, hasRef, previousExistingPlays, maxMillis, previousBestScore);
+			GridToFixtureGames(grid, fixture, firstGame, timeBetweenGames);
 		}
 
 		List<List<int>> ContinueMixing(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis, double startingScore)
@@ -176,7 +176,6 @@ namespace Torn5
 		{
 			List<List<int>> newGrid = grid.ConvertAll(row => row.ConvertAll(cell => cell));
 			double teamsPerGame = grid[0].Count;
-			double totalTeams = FlattenGrid(grid).Uniq().Count;
 			Random rnd = new Random();
 
 			int game1 = rnd.Next(grid.Count);
@@ -204,18 +203,6 @@ namespace Torn5
 				totals.Add(total);
 			}
 			return totals;
-		}
-
-		int AverageRow(List<int> row)
-		{
-			int total = 0;
-			foreach (int value in row)
-			{
-				total += value;
-			}
-
-			return total / row.Count;
-
 		}
 
 		List<List<int>> NormalisePlays(List<List<int>> grid)
@@ -274,7 +261,7 @@ namespace Torn5
 		double CalcScore(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, bool log = false)
 		{
 			List<List<int>> normalisedExistingPlays = NormalisePlays(existingPlays);
-			int totalTeams = FlattenGrid(grid).Uniq().Count;
+			int totalTeams = CountDistinct(grid);
 			int teamsPerGame = grid[0].Count;
 			double previousAveragePlays = GetAveragePlays(normalisedExistingPlays);
 			List<List<int>> plays = NormalisePlays(CalcPlays(grid, hasRef, existingPlays));
@@ -298,7 +285,7 @@ namespace Torn5
 			{
 				int numberOfGames = colour.Count;
 				int numberOfColours = transposedGrid.Count;
-				int uniqueTeams = colour.Uniq().Count;
+				int uniqueTeams = colour.Distinct().Count();
 				double gamesOnEachColour = gamesPerTeam / numberOfColours;
 				int penalties = colour.FindAll(team => colour.FindAll(t => t == team).Count > gamesOnEachColour).Count;
 
@@ -308,7 +295,7 @@ namespace Torn5
 
 			foreach (List<int> row in grid)
 			{
-				int uniquePlayers = row.Uniq().Count;
+				int uniquePlayers = row.Distinct().Count();
 				score += Math.Abs(uniquePlayers - teamsPerGame) * 100000; // penalty for playing themselves
 			}
 
@@ -370,7 +357,7 @@ namespace Torn5
 				newGrid = TransposeGrid(transposedGrid);
 			}
 
-			int totalTeams = FlattenGrid(newGrid).Uniq().Count;
+			int totalTeams = CountDistinct(newGrid);
 			List<List<int>> plays = new List<List<int>>();
 			for (int team1 = 0; team1 < totalTeams; team1++)
 			{
@@ -402,9 +389,7 @@ namespace Torn5
 			{
 				n--;
 				int k = random.Next(n + 1);
-				T value = list[k];
-				list[k] = list[n];
-				list[n] = value;
+				(list[n], list[k]) = (list[k], list[n]);
 			}
 			return list;
 		}
@@ -415,7 +400,7 @@ namespace Torn5
 			{
 				grid[i] = Shuffle(grid[i]);
 			}
-			List<List<int>> transposed = TransposeGrid(grid);
+
 			for (int i = 0; i < grid.Count; i++)
 			{
 				grid[i] = Shuffle(grid[i]);
@@ -467,7 +452,7 @@ namespace Torn5
 
 		public List<List<int>> PadPlaysToTeamNumber(int numberOfTeams, List<List<int>> plays)
 		{
-			Console.WriteLine(numberOfTeams);
+			Console.WriteLine("PadPlaysToTeamNumber {0}", numberOfTeams);
 			List<List<int>> newGrid = plays.ConvertAll(row => row.ConvertAll(cell => cell));
 			int teamPlays = newGrid.Count;
 			if (numberOfTeams > teamPlays)
@@ -492,15 +477,39 @@ namespace Torn5
 			}
 		}
 
-		public string TeamColours()
+		/// <summary>Convert grid to FixtureGames.</summary>
+		/// <param name="grid">Each value in the grid is an index into fixture.Teams.</param>
+		void GridToFixtureGames(List<List<int>> grid, Fixture fixture, DateTime firstGame, TimeSpan timeBetweenGames)
 		{
-			string coloursAsString = "";
-			coloursAsString += Colours.Contains(Colour.Red) ? "1," : "";
-			coloursAsString += Colours.Contains(Colour.Blue) ? "2," : "";
-			coloursAsString += Colours.Contains(Colour.Yellow) ? "4," : "";
-			coloursAsString += Colours.Contains(Colour.Green) ? "3," : "";
-			coloursAsString += Colours.Contains(Colour.Referee) ? "17," : "";
-			return coloursAsString;
+			var time = firstGame;
+			foreach (List<int> row in grid)
+			{
+				var fg = new FixtureGame { Time = time };
+
+				for (int i = 0; i < row.Count; i++)
+				{
+					var team = fixture.Teams[row[i]];
+
+					if (fg.Teams.ContainsKey(team))
+						Console.WriteLine("Team {0} (TeamId {1}, Colour {2}) is already in game {3}. Oh no!", team.ToString(), team.TeamId, Colours[i], fg.ToString());
+					else
+						fg.Teams.Add(team, Colours[i]);
+				}
+				fixture.Games.Add(fg);
+				time = time.Add(timeBetweenGames);
+			}
 		}
+	}
+}
+
+public static class ListExtensions
+{
+	public static List<List<T>> ChunkBy<T>(this List<T> source, int chunkSize)
+	{
+		return source
+			.Select((x, i) => new { Index = i, Value = x })
+			.GroupBy(x => x.Index / chunkSize)
+			.Select(x => x.Select(v => v.Value).ToList())
+			.ToList();
 	}
 }

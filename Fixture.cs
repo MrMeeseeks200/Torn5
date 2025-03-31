@@ -151,26 +151,6 @@ namespace Torn
 			}
 		}
 
-		public void Parse(List<List<int>> grid, FixtureTeams teams, DateTime firstGame, TimeSpan duration, string colours = "1,2,4,17")
-		{
-			string str = "";
-
-			foreach(List<int> row in grid)
-			{
-				str += firstGame.ToString("dd/MM/yyyy hh:mm:ss tt");
-				foreach (int team in row)
-				{
-					str += "\t";
-					str += team + 1;
-				}
-				firstGame += duration;
-				str += "\r\n";
-			}
-
-			Parse(str, teams, '\t', colours);
-
-		}
-
 		// Import past games from a league.
 		public void Parse(League league, FixtureTeams teams)
 		{
