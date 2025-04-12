@@ -1577,8 +1577,6 @@ namespace Torn
 		/// </summary>
 		void LinkThings()
 		{
-			teams.Sort();
-
 			for(int i = 0; i < AllGames.Count; i++)
 			{
 				var game = AllGames[i];

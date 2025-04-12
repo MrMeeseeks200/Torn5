@@ -31,25 +31,8 @@ namespace Torn.UI
 		{
 			League.Load(League.FileName);
 			Text = "Torn -- " + League.Title;
-			treeView1.Nodes.Clear();
-			
-			foreach (var team in League.Teams)
-			{
-				var teamNode = new TreeNode(team.Name)
-				{
-					Tag = team
-				};
-				foreach (var player in team.Players)
-				{
-					var playerNode = new TreeNode(player.Name)
-					{
-						Tag = player
-					};
 
-					teamNode.Nodes.Add(playerNode);
-				}
-				treeView1.Nodes.Add(teamNode);
-			}
+			BuildTree();
 
 			totalScore.Checked = League.VictoryPoints.Count == 0;
 			victoryPoints.Checked = League.VictoryPoints.Any();
@@ -102,8 +85,31 @@ namespace Torn.UI
 			redTermValue.Value = League.RedTermValue;
 		}
 
+		private void BuildTree()
+		{
+			treeView1.Nodes.Clear();
+
+			foreach (var team in League.Teams)
+			{
+				var teamNode = new TreeNode(team.Name)
+				{
+					Tag = team
+				};
+				foreach (var player in team.Players)
+				{
+					var playerNode = new TreeNode(player.Name)
+					{
+						Tag = player
+					};
+
+					teamNode.Nodes.Add(playerNode);
+				}
+				treeView1.Nodes.Add(teamNode);
+			}
+		}
+
 		private void SetupGradeSelector(string alias, string grade)
-        {
+		{
 			playerGradeAlias.Visible = true;
 			playerGradeAlias.Text = alias + " Grade";
 			playerGradeBox.Items.Clear();
@@ -174,10 +180,6 @@ namespace Torn.UI
 		private void TreeView1MouseMove(object sender, MouseEventArgs e)
 		{
 			hovered = treeView1.GetNodeAt(e.Location);
-			if (hovered != null)
-				Text = hovered.Text;
-			else
-				Text = "League";
 		}
 
 		private void TreeView1MouseClick(object sender, MouseEventArgs e)
@@ -187,7 +189,6 @@ namespace Torn.UI
 				if (hovered != null)
 				{
 					treeView1.SelectedNode = hovered;
-					Text = hovered.Text;
 
 					deletePlayerMenuItem.Visible = treeView1.SelectedNode.Tag is LeaguePlayer;
 					reIDPlayerMenuItem.Visible = treeView1.SelectedNode.Tag is LeaguePlayer;
@@ -201,6 +202,12 @@ namespace Torn.UI
 		{
 			League.Title = InputDialog.GetInput("Rename League", "Choose a new name for the league", League.Title);
 			Text = "Torn -- " + League.Title;
+		}
+
+		private void ButtonSortTeamsClick(object sender, EventArgs e)
+		{
+			League.Teams.Sort();
+			BuildTree();
 		}
 
 		/// <summary>Import team names from clipboard; one team name per line of text.</summary>
@@ -255,11 +262,11 @@ namespace Torn.UI
 			if (treeView1.SelectedNode.Tag is LeagueTeam team)
 			{
 				string name = team.Name;
-			    if (InputDialog.UpdateInput("Rename Team", "Choose a new name for the team", ref name))
-			    {
-			    	team.Name = name;
+				if (InputDialog.UpdateInput("Rename Team", "Choose a new name for the team", ref name))
+				{
+					team.Name = name;
 					treeView1.SelectedNode.Text = name;
-			    }
+				}
 			}
 		}
 
@@ -299,7 +306,7 @@ namespace Torn.UI
 		void ButtonReIdPlayerClick(object sender, EventArgs e)
 		{
 			if (!(treeView1.SelectedNode.Tag is LeaguePlayer))
-			    return;
+				return;
 
 			var player = (LeaguePlayer)treeView1.SelectedNode.Tag;
 			FormPlayer.PlayerId = player.Id;
@@ -406,8 +413,8 @@ namespace Torn.UI
 			League.HandicapStyle = HandicapExtensions.ToHandicapStyle(((Control)sender).Text);
 		}
 
-        private void automaticHandicapEnabled_CheckedChanged(object sender, EventArgs e)
-        {
+		private void automaticHandicapEnabled_CheckedChanged(object sender, EventArgs e)
+		{
 			League.IsAutoHandicap = automaticHandicapEnabled.Checked;
 			teamSize.Enabled = automaticHandicapEnabled.Checked;
 			missingPlayerPenalty.Enabled = automaticHandicapEnabled.Checked;
@@ -418,7 +425,7 @@ namespace Torn.UI
 				gradeEditor.Enabled = automaticHandicapEnabled.Checked;
 
 			if(automaticHandicapEnabled.Checked)
-            {
+			{
 				League.HandicapStyle = HandicapExtensions.ToHandicapStyle("Percent");
 				radioButtonPercent.Checked = true;
 			}
@@ -431,20 +438,20 @@ namespace Torn.UI
 		}
 
 		private void UpdatePlayerGrade(LeaguePlayer leaguePlayer)
-        {
+		{
 			foreach (LeagueTeam team in League.Teams.ToList())
-            {
+			{
 				int teamIndex = League.Teams.IndexOf(team);
 				foreach (LeaguePlayer player in team.Players.ToList())
-                {
+				{
 					int playerIndex = team.Players.IndexOf(player);
 					if (player.Id == leaguePlayer.Id)
-                    {
+					{
 						League.Teams[teamIndex].Players[playerIndex] = leaguePlayer;
-                    }
-                }
-            }
-        }
+					}
+				}
+			}
+		}
 
 		private void manualTeamCap_ValueChanged(object sender, EventArgs e)
 		{
@@ -456,7 +463,7 @@ namespace Torn.UI
 		}
 
 		private void playerGradeBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
+		{
 			string grade = playerGradeBox.SelectedItem.ToString();
 			if (treeView1.SelectedNode.Tag is LeaguePlayer player)
 			{
@@ -518,14 +525,14 @@ namespace Torn.UI
 			League.ExtraGBonus = (int)extraGBonus.Value;
 		}
 
-        private void hitsTieBreak_CheckedChanged(object sender, EventArgs e)
-        {
+		private void hitsTieBreak_CheckedChanged(object sender, EventArgs e)
+		{
 			League.HitsTieBreak = hitsTieBreak.Checked;
 			if(hitsTieBreak.Checked)
-            {
+			{
 				zeroedTieBreak.Checked = false;
-            }
-        }
+			}
+		}
 
 		void SetPointPercentBox(int i)
 		{
@@ -558,7 +565,7 @@ namespace Torn.UI
 		}
 
 		private void loadPresetPoints(List<PointPercent> presetPoints)
-        {
+		{
 			SetPointPercentBox(presetPoints.Count);
 			for (int i = 0; i < presetPoints.Count; i++)
 				PointPercents[i].pointPercent = presetPoints[i];
@@ -566,57 +573,57 @@ namespace Torn.UI
 				PointPercents[i].pointPercent = new PointPercent(0, 0);
 		}
 
-        private void waLeaguePoints_Click(object sender, EventArgs e)
+		private void waLeaguePoints_Click(object sender, EventArgs e)
 		{
 			loadPresetPoints(League.WA_LEAGUE_POINTS);
 		}
 
-        private void waDoubles_Click(object sender, EventArgs e)
-        {
+		private void waDoubles_Click(object sender, EventArgs e)
+		{
 			loadPresetPoints(League.WA_DOUBLES_POINTS);
 
 		}
 
-        private void waTriples_Click(object sender, EventArgs e)
-        {
+		private void waTriples_Click(object sender, EventArgs e)
+		{
 			loadPresetPoints(League.WA_TRIPLES_POINTS);
 		}
 
-        private void verbalTermValue_ValueChanged(object sender, EventArgs e)
-        {
+		private void verbalTermValue_ValueChanged(object sender, EventArgs e)
+		{
 			League.VerbalTermValue = verbalTermValue.Value;
-        }
+		}
 
-        private void yellowTermValue_ValueChanged(object sender, EventArgs e)
-        {
+		private void yellowTermValue_ValueChanged(object sender, EventArgs e)
+		{
 			League.YellowTermValue = yellowTermValue.Value;
 
 		}
 
 		private void redTermValue_ValueChanged(object sender, EventArgs e)
-        {
+		{
 			League.RedTermValue = redTermValue.Value;
-        }
+		}
 
-        private void zeroElimed_CheckedChanged(object sender, EventArgs e)
-        {
+		private void zeroElimed_CheckedChanged(object sender, EventArgs e)
+		{
 			League.ZeroElimed = zeroElimed.Checked;
 		}
 
-        private void zeroVps_CheckedChanged(object sender, EventArgs e)
-        {
+		private void zeroVps_CheckedChanged(object sender, EventArgs e)
+		{
 			League.ZeroVps = zeroVps.Checked;
 			if(zeroVps.Checked)
 				halfVps.Checked = false;
 		}
 
-        private void sweepBonus_ValueChanged(object sender, EventArgs e)
-        {
+		private void sweepBonus_ValueChanged(object sender, EventArgs e)
+		{
 			League.SweepBonus = (int)sweepBonus.Value;
 		}
 
-        private void zeroedTieBreak_CheckedChanged(object sender, EventArgs e)
-        {
+		private void zeroedTieBreak_CheckedChanged(object sender, EventArgs e)
+		{
 			League.ZeroedTieBreak = zeroedTieBreak.Checked;
 			if (zeroedTieBreak.Checked)
 			{
@@ -624,16 +631,11 @@ namespace Torn.UI
 			}
 		}
 
-        private void label11_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void halfElimed_CheckedChanged(object sender, EventArgs e)
-        {
+		private void halfElimed_CheckedChanged(object sender, EventArgs e)
+		{
 			League.HalfVps = halfVps.Checked;
 			if(halfVps.Checked)
 				zeroVps.Checked = false;
 		}
-    }
+	}
 }
