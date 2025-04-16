@@ -38,7 +38,7 @@
 				</File>
 			</Component>
 			<Component Id="BouncyCastle.Crypto.dll" Guid="{39d5acd9-5f6b-4d2b-a701-d60964a13ce1}"> 
-        <File  Id="BouncyCastle.Crypto.dll" Name="BouncyCastle.Crypto.dll" Source="BouncyCastle.Crypto.dll" DiskId="1"/> 
+        <File  Id="BouncyCastle.Crypto.dll" Name="BouncyCastle.Crypto.dll" Source="BouncyCastle.Cryptography.dll" DiskId="1"/> 
       </Component> 
       <Component Id="Fizzler.dll" Guid="{21807718-60cb-47ba-af2b-6f0785f9a94e}"> 
         <File  Id="Fizzler.dll" Name="Fizzler.dll" Source="Fizzler.dll" DiskId="1"/> 
@@ -101,7 +101,7 @@
         <File  Id="Ubiety.Dns.Core.dll" Name="Ubiety.Dns.Core.dll" Source="Ubiety.Dns.Core.dll" DiskId="1"/> 
       </Component> 
       <Component Id="ZstdNet.dll" Guid="{636d60e5-3935-4396-9f51-e5200218e920}"> 
-        <File  Id="ZstdNet.dll" Name="ZstdNet.dll" Source="ZstdNet.dll" DiskId="1"/> 
+        <File  Id="ZstdNet.dll" Name="ZstdNet.dll" Source="ZstdSharp.dll" DiskId="1"/> 
       </Component> 
       <Component Id="Torn.exe.config" Guid="{132d4b51-c76b-4772-aeba-3b40d1c49b42}"> 
         <File  Id="Torn.exe.config" Name="Torn.exe.config" Source="Torn.exe.config" DiskId="1"/> 
