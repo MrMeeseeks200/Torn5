@@ -16,7 +16,6 @@ namespace Torn5
         TcpClient client;
         int gameLimit;
         string gameFilter;
-        bool hasGameFilter;
 
         public TornTcpServer(int limit, string filter, bool hasFilter, string _server = "", string _port = "12081")
         {

@@ -7,26 +7,60 @@ using System.Linq;
 using System.Windows.Forms;
 using Torn;
 using Torn.Report;
+using Torn5;
+using Zoom;
 
 namespace Torn.UI
 {
 	/// <summary>
-	/// Allow users to import tournament fixtures.
+	/// Allow users to create or import tournament fixtures.
 	/// </summary>
 	public partial class FormFixture : Form
 	{
-		public Holder Holder { get; set; }
-		public string ExportFolder { get; set; }
+		Holder holder;
+		public Holder Holder
+		{
+			get { return holder; }
 
-		private List<List<int>> previousGrid;
-		private double previousBestScore;
-		private double previousGamesPerTeam;
-		private bool previousHasRef;
-		private List<List<int>> previousExistingPlays;
+			set
+			{
+				holder = value;
+
+				if (frameFinals1 != null)
+					frameFinals1.Games = holder.League.AllGames;
+				if (framePyramid1 != null)
+					framePyramid1.Holder = holder;
+				if (framePyramidRound1 != null)
+					framePyramidRound1.Holder = holder;
+
+				SetExportFileName();
+			}
+		}
+
+		string exportFolder;
+		public string ExportFolder
+		{
+			get { return exportFolder; }
+
+			set
+			{
+				exportFolder = value;
+
+				SetExportFileName();
+			}
+		}
+
+		private void SetExportFileName()
+		{
+			if (!string.IsNullOrEmpty(exportFolder) && holder != null)
+				printReport1.FileName = System.IO.Path.Combine(ExportFolder, holder.Key, "fixture." + holder.ReportTemplates.OutputFormat.ToExtension());
+		}
+
 		private List<CheckBox> teamSelectors = new List<CheckBox>();
 		private List<CheckBox> fixtureTeamSelectors = new List<CheckBox>();
 		private List<LeagueTeam> selectedTeams = new List<LeagueTeam>();
 		private List<LeagueTeam> fixtureSelectedTeams = new List<LeagueTeam>();
+		private TeamGrid teamGrid;
 
 		Colour leftButton, middleButton, rightButton, xButton1, xButton2;
 		Point point;  // This is the point in the grid last clicked on. It's counted in grid squares, not in pixels: 9,9 is ninth column, ninth row.
@@ -42,14 +76,16 @@ namespace Torn.UI
 
 			datePicker.Value = DateTime.Now.Date;
 			timePicker.CustomFormat = CultureInfo.CurrentUICulture.DateTimeFormat.ShortTimePattern;
+			DateTime dt = DateTime.Now;
+			gameDateTime.Value = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 0, dt.Kind).AddMinutes(1);  // Don't include seconds / milliseconds.
+
 			leftButton = Colour.Red;
 			middleButton = Colour.Blue;
 			rightButton = Colour.Green;
 			xButton1 = Colour.Yellow;
 			xButton2 = Colour.Purple;
 			point = new Point(-1, -1);
-			resizing = false;		
-
+			resizing = false;
 		}
 
 		void ButtonClearClick(object sender, EventArgs e)
@@ -59,532 +95,63 @@ namespace Torn.UI
 			displayReportGrid.Report = null;
 		}
 
-		void LogGrid<T>(List<List<T>> grid)
+		void ButtonGenerateClick(object sender, EventArgs e)
 		{
-			string str = "**********\n";
-			foreach (List<T> list in grid)
+			buttonGenerate.Text = "Generating...";
+			buttonGenerate.Enabled = false;
+			try
 			{
-				foreach (T item in list)
-				{
-					str += item + ",\t";
-				}
-				str += "\n";
+				if (checkRings.Enabled && numericRings.Value > 1)
+					GenerateRingGrid();
+				else
+					GenerateTeamGrid();
 			}
-			str += "**********";
-			Console.WriteLine(str);
+			finally
+			{
+				buttonGenerate.Text = "Generate";
+				buttonGenerate.Enabled = true;
+			}
 		}
 
-		List<T> FlattenGrid<T>(List<List<T>> grid)
+		private void GenerateRingGrid()
 		{
-			List<T> flat = new List<T>();
-			foreach (List<T> list in grid)
-			{
-				flat.AddRange(list);
-			}
-			return flat;
+			var grid = new RingGrid();
+			grid.GenerateRingGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)numericRings.Value, (int)gamesPerTeamInput.Value, gameDateTime.Value, (int)minBetween.Value, referee.Checked);
+
+			RefreshReports();
 		}
 
-		List<List<T>> TransposeGrid<T>(List<List<T>> grid)
-        {
-			return grid.SelectMany(inner => inner.Select((item, index) => new { item, index }))
-				.GroupBy(i => i.index, i => i.item)
-				.Select(g => g.ToList())
-				.ToList();
-		}
-
-		List<List<int>> GetGrid(FixtureTeams teams, double teamsPerGame, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis)
+		private void GenerateTeamGrid()
 		{
-			List<List<int>> bestGrid = SetupGrid(teams, teamsPerGame, gamesPerTeam);
+			teamGrid = new TeamGrid() { BackToBackPenalty = (double)backToBackPenalty.Value };
 
-			double bestScore = CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays);
+			if (red.Checked) teamGrid.Colours.Add(Colour.Red);
+			if (blue.Checked) teamGrid.Colours.Add(Colour.Blue);
+			if (green.Checked) teamGrid.Colours.Add(Colour.Green);
+			if (yellow.Checked) teamGrid.Colours.Add(Colour.Yellow);
+			if (referee.Checked) teamGrid.Colours.Add(Colour.Referee);
 
-			return ContinueMixing(bestGrid, gamesPerTeam, hasRef, existingPlays, maxMillis, bestScore);
-
-		}
-
-		List<List<int>> ContinueMixing(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, int maxMillis, double startingScore)
-        {
-			List<List<int>> bestGrid = grid;
-			double bestScore = startingScore;
-			bool badFixture = bestScore > 10000;
-
-			Console.WriteLine("initScore: {0}", bestScore);
-			LogGrid(bestGrid);
-
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-			scoreLabel.Visible = false;
-			scoreLabel.Text = "";
-			int count = 0;
-
-			for (int i = 0; i < 20000; i++)
+			SetBusy(true);
+			try
 			{
-				count++;
-				List<List<int>> mixedGrid = MixGrid(bestGrid);
-				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
-				if (score <= bestScore)
-				{
-					bestScore = score;
-					bestGrid = mixedGrid;
-					if (bestScore > 10000)
-					{
-						badFixture = true;
-					}
-					else
-					{
-						badFixture = false;
-					}
-				} 
+				teamGrid.GenerateTeamGrid(Holder.League, Holder.Fixture, fixtureSelectedTeams, (int)maxTime.Value * 1000, (int)gamesPerTeamInput.Value, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value));
+
+				RefreshReports();
+			}
+			finally
+			{
+				SetBusy(false);
 			}
 
-			while (badFixture)
-			{
-				count++;
-				if (sw.ElapsedMilliseconds > maxMillis)
-					break;
-				List<List<int>> mixedGrid = MixGrid(bestGrid);
-				double score = CalcScore(mixedGrid, gamesPerTeam, hasRef, existingPlays);
-				if (score <= bestScore)
-				{
-					bestScore = score;
-					bestGrid = mixedGrid;
-					if (bestScore > 10000)
-					{
-						badFixture = true;
-					}
-					else
-					{
-						badFixture = false;
-					}
-				}
-			}
-			CalcScore(bestGrid, gamesPerTeam, hasRef, existingPlays, true);
-			Console.WriteLine("Time Elapsed (ms): {0}", sw.ElapsedMilliseconds);
-			Console.WriteLine("Iterations: {0}", count);
-
-			Console.WriteLine("bestScore: {0}", bestScore);
-			LogGrid(bestGrid);
-			Console.WriteLine("Existing Plays");
-			LogGrid(NormalisePlays(existingPlays));
-			Console.WriteLine("Plays");
-			LogGrid(NormalisePlays(CalcPlays(bestGrid, hasRef, existingPlays)));
-			scoreLabel.Text = bestScore >= 10000 ? "Extend max time and regenerate: " + Math.Round(bestScore).ToString() : "Score: " + Math.Round(bestScore).ToString() + " (Lower is better)";
-			scoreLabel.BackColor = bestScore >= 10000 ? Color.FromName("red") : Color.Transparent;
-			scoreLabel.Visible = true;
-
-			previousGrid = bestGrid;
-			previousBestScore = bestScore;
-			previousGamesPerTeam = gamesPerTeam;
-			previousHasRef = hasRef;
-			previousExistingPlays = existingPlays;
-			continueGenerating.Enabled = true;
-
-
-			return bestGrid;
+			scoreLabel.Text = teamGrid.ScoreText;
+			scoreLabel.BackColor = teamGrid.ScoreColor;
 		}
 
-		List<List<int>> MixGrid(List<List<int>> grid)
-        {
-			List<List<int>> newGrid = grid.ConvertAll(row => row.ConvertAll(cell => cell));
-			double teamsPerGame = grid[0].Count;
-			double totalTeams = FlattenGrid(grid).Uniq().Count;
-			Random rnd = new Random();
-
-			int game1 = rnd.Next(grid.Count);
-			int game2 = rnd.Next(grid.Count);
-
-			int player1 = rnd.Next((int)teamsPerGame);
-			int player2 = rnd.Next((int)teamsPerGame);
-
-			newGrid[game1][player1] = grid[game2][player2];
-			newGrid[game2][player2] = grid[game1][player1];
-
-			return newGrid;
-        }
-
-		List<int> SumRows(List<List<int>> grid )
-        {
-			List<int> totals = new List<int>();
-			foreach(List<int> row in grid)
-            {
-				int total = 0;
-				foreach(int value in row)
-                {
-					total += value;
-                }
-				totals.Add(total);
-            }
-			return totals;
-        }
-
-		int AverageRow(List<int> row)
+		private void RefreshReports()
 		{
-			int total = 0;
-			foreach (int value in row)
-			{
-				total += value;
-			}
-
-			return total / row.Count;
-				
-		}
-
-		List<List<int>> NormalisePlays(List<List<int>> grid)
-		{
-            List<int> playsTotals = SumRows(grid);
-            double mostPlays = 0;
-			List<List<int>> updatedGrid = new List<List<int>>();
-
-            foreach (int totalPlays in playsTotals)
-            {
-                if (totalPlays > mostPlays)
-                {
-                    mostPlays = totalPlays;
-                }
-            }
-
-
-			for (int i = 0; i < grid.Count; i++)
-			{
-				List<int> row = grid[i];
-				List<int> newRow = new List<int>();
-				double teamPlays = playsTotals[i];
-				double multiplier = teamPlays == 0 || mostPlays == 0 ? 1 : mostPlays / teamPlays;
-
-				for(int j =  0; j < row.Count; j++)
-				{
-                    double teamPlays2 = playsTotals[j];
-                    double multiplier2 = teamPlays2 == 0 || mostPlays == 0 ? 1 : mostPlays / teamPlays2;
-					double mult = Math.Max(multiplier, multiplier2);
-					double result = mult * row[j];
-                    newRow.Add((int)Math.Round(result));
-				}
-				updatedGrid.Add(newRow);
-			}
-			return updatedGrid;
-        }
-
-		double GetAveragePlays(List<List<int>> grid)
-		{
-			double total = 0;
-            double count = 0;
-			for(int i = 0; i < grid.Count; i++)
-			{
-				for(int j = 0; j < grid[i].Count; j++)
-				{
-					if(i != j)
-					{
-						total += grid[i][j];
-						count++;
-					}
-				}
-			}
-			return total / count;
-		}
-
-		double CalcScore(List<List<int>> grid, double gamesPerTeam, bool hasRef, List<List<int>> existingPlays, bool log = false)
-		{
-			List<List<int>> normalisedExistingPlays = NormalisePlays(existingPlays);
-            int totalTeams = FlattenGrid(grid).Uniq().Count;
-			int BACK_TO_BACK_PENALTY = (int)backToBackPenalty.Value;
-			int teamsPerGame = grid[0].Count;
-			double previousAveragePlays = GetAveragePlays(normalisedExistingPlays);
-			List<List<int>> plays = NormalisePlays(CalcPlays(grid, hasRef, existingPlays));
-			double averagePlays = GetAveragePlays(plays);
-
-			double score = 0;
-
-            for (int player1 = 0; player1 < plays.Count; player1++)
-            {
-                score += plays[player1][player1] * 100000; // penalty for playing themselves
-				for(int player2 = player1 + 1; player2 < plays[player1].Count; player2++)
-                {
-                    score += Math.Pow(plays[player1][player2] - averagePlays, 4);
-				}
-			}
-
-            List<List<int>> transposedGrid = TransposeGrid(grid);
-
-			//penalty for same colour
-			foreach (List<int> colour in transposedGrid)
-            {
-				int numberOfGames = colour.Count;
-				int numberOfColours = transposedGrid.Count;
-				int uniqueTeams = colour.Uniq().Count;
-				double gamesOnEachColour = gamesPerTeam / numberOfColours;
-				int penalties = colour.FindAll(team => colour.FindAll(t => t == team).Count > gamesOnEachColour).Count;
-
-				double penalty = penalties * 100000;
-				score += penalty;
-            }
-
-			foreach(List<int> row in grid)
-            {
-				int uniquePlayers = row.Uniq().Count;
-				score += Math.Abs(uniquePlayers - teamsPerGame) * 100000; // penalty for playing themselves
-			}
-
-			for (int game = 0; game < grid.Count - 1; game++)
-			{
-				foreach (var team in grid[game])
-				{
-					var nextGame = grid[game + 1];
-					if(nextGame.Contains(team))
-                    {
-						var isRefTho = hasRef && (nextGame.IndexOf(team) == (nextGame.Count - 1) || grid[game].IndexOf(team) == (grid[game].Count - 1));
-						if (log) { Console.WriteLine("team " + team + " is in games " + game + " and " + (game + 1) + " back to back" + (isRefTho ? " but one is a ref game" : "")); }
-						score += BACK_TO_BACK_PENALTY - (isRefTho ? BACK_TO_BACK_PENALTY * (0.5) : 0);
-					}
-				}
-			}
-
-			return score;
-		}
-
-		List<List<int>> AddGrids(List<List<int>> grid1, List<List<int>> grid2)
-        {
-			
-			if (grid1.Count > 0 && grid1.Count == grid2.Count && grid1[0].Count == grid2[0].Count)
-			{
-				List<List<int>> grid3 = new List<List<int>>();
-				for (int i = 0; i < grid1.Count; i++)
-				{
-					List<int> row = new List<int>();
-					for (int j = 0; j < grid1[i].Count; j++)
-					{
-						if(grid2.Count > i && grid2[i].Count > j)
-                        {
-							row.Add(grid1[i][j] + grid2[i][j]);
-						} else
-                        {
-							row.Add(grid1[i][j]);
-                        }
-						
-					}
-					grid3.Add(row);
-				}
-				return grid3;
-			} else
-            {
-				return grid1;
-            }
-        }
-
-		List<List<int>> CalcPlays(List<List<int>> grid, bool hasRef, List<List<int>> existingPlays)
-        {
-			List<List<int>> newGrid = grid.ConvertAll(row => row.ConvertAll(cell => cell));
-			// ignore ref games
-			if (hasRef)
-            {
-				List<List<int>> transposedGrid = TransposeGrid(newGrid);
-				transposedGrid.RemoveAt(transposedGrid.Count - 1);
-				newGrid = TransposeGrid(transposedGrid);
-            }
-
-			int totalTeams = FlattenGrid(newGrid).Uniq().Count;
-			List<List<int>> plays = new List<List<int>>();
-			for(int team1 = 0; team1 < totalTeams; team1++)
-            {
-				List<int> row = new List<int>();
-				for (int team2 = 0; team2 < totalTeams; team2++)
-				{
-					if (team1 == team2)
-					{
-						List<List<int>> games = newGrid.FindAll(g => g.FindAll(t => t == team1).Count > 1);
-						row.Add(games.Count);
-					}
-					else
-					{
-						List<List<int>> games = newGrid.FindAll(g => g.Contains(team1) && g.Contains(team2));
-						row.Add(games.Count);
-					}
-				}
-				plays.Add(row);
-			}
-
-			return AddGrids(plays, existingPlays);
-		}
-
-		List<T> Shuffle<T>(List<T> list)
-		{
-			Random random = new Random();
-			int n = list.Count;
-			while (n > 1)
-			{
-				n--;
-				int k = random.Next(n + 1);
-				T value = list[k];
-				list[k] = list[n];
-				list[n] = value;
-			}
-			return list;
-		}
-
-		List<List<int>> RandomiseGrid (List<List<int>> grid)
-        {
-			for(int i = 0; i < grid.Count; i++)
-            {
-				Random random = new Random();
-				grid[i] = Shuffle(grid[i]);
-			}
-			List<List<int>> transposed = TransposeGrid(grid);
-			for (int i = 0; i < grid.Count; i++)
-			{
-				Random random = new Random();
-				grid[i] = Shuffle(grid[i]);
-			}
-			return TransposeGrid(grid);
-
-		}
-
-
-		List<List<int>> SetupGrid (FixtureTeams teams, double teamsPerGame, double gamesPerTeam)
-        {
-			int numberOfTeams = teams.Count();
-			double numGames = (numberOfTeams / teamsPerGame) * gamesPerTeam;
-
-			// set up grid
-			List<int> arr = Enumerable.Repeat(-1, (int) teamsPerGame * (int)Math.Ceiling(numGames)).ToList();
-			int index = 0;
-			List<int> updatedArr = new List<int>();
-			foreach (int el in arr)
-			{
-				updatedArr.Add((int)(index % numberOfTeams));
-				index++;
-			}
-			List<List<int>> grid = updatedArr.ChunkBy((int)teamsPerGame);
-			for (int i = 0; i < 5000; i++)
-			{
-				RandomiseGrid(grid);
-			}
-
-
-			return grid;
-
-		}
-
-		public List<List<int>> GetLeagueGrid(League league)
-		{
-			List<List<int>> grid = new List<List<int>>();
-			foreach(Game game in league.AllGames)
-            {
-				List<int> row = new List<int>();
-				foreach(GameTeam team in game.Teams)
-                {
-					row.Add(team.TeamId - 1 ?? -1);
-                }
-				grid.Add(row);
-            }
-
-			return grid;
-		}
-
-		public List<List<int>> PadPlaysToTeamNumber(int numberOfTeams, List<List<int>> plays)
-        {
-			Console.WriteLine(numberOfTeams);
-			List<List<int>> newGrid = plays.ConvertAll(row => row.ConvertAll(cell => cell));
-			int teamPlays = newGrid.Count;
-			if (numberOfTeams > teamPlays)
-            {
-				for(int i = 0; i < teamPlays; i++)
-                {
-					for(int j = teamPlays; j < numberOfTeams; j++)
-                    {
-						newGrid[i].Add(0);
-                    }
-				}
-				for(int i = teamPlays; i < numberOfTeams; i++)
-                {
-					List<int> arr = Enumerable.Repeat(0, numberOfTeams).ToList();
-					newGrid.Add(arr);
-				}
-
-				return newGrid;
-			} else
-            {
-				return plays;
-            }
-        }
-
-		double TeamsPerGame()
-        {
-			double teamsPerGame = 0;
-			teamsPerGame += red.Checked ? 1 : 0;
-			teamsPerGame += yellow.Checked ? 1 : 0;
-			teamsPerGame += green.Checked ? 1 : 0;
-			teamsPerGame += blue.Checked ? 1 : 0;
-			teamsPerGame += referee.Checked ? 1 : 0;
-			return teamsPerGame;
-		}
-
-		string TeamColours()
-		{
-			string colours = "";
-			colours += red.Checked ? "1," : "";
-			colours += blue.Checked ? "2," : "";
-			colours += yellow.Checked ? "4," : "";
-			colours += green.Checked ? "3," : "";
-			colours += referee.Checked ? "17," : "";
-			return colours;
-		}
-
-		void ButtonImportTeamsClick(object sender, EventArgs e)
-		{
-			buttonImportTeams.Text = "Generating...";
-			buttonImportTeams.Enabled = false;
-			continueGenerating.Enabled = false;
-			Holder.Fixture.Teams.Clear();
-			Holder.Fixture.Teams.Parse(fixtureSelectedTeams, Holder.League);
-			Holder.Fixture.Games.Clear();
-			double numberOfTeams = Holder.Fixture.Teams.Count;
-			bool hasRef = referee.Checked;
-			double teamsPerGame = TeamsPerGame();
-			double gamesPerTeam = (double) gamesPerTeamInput.Value + (hasRef ? (double) gamesPerTeamInput.Value / (teamsPerGame - 1) : 0);
-			int maxMillis = (int)maxTime.Value * 1000;
-
-			List<List<int>> existingGrid = GetLeagueGrid(Holder.League);
-			List<List<int>> existingPlays = CalcPlays(existingGrid, false, new List<List<int>>());
-			LogGrid(existingPlays);
-
-			List<List<int>> existingPlaysPadded = PadPlaysToTeamNumber((int)numberOfTeams, existingPlays);
-            LogGrid(existingPlaysPadded);
-
-            List<List<int>> grid = GetGrid(Holder.Fixture.Teams, teamsPerGame, gamesPerTeam, hasRef, existingPlaysPadded, maxMillis);
-
-			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
-
 			textBoxGames.Text = Holder.Fixture.Games.ToString();
 			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
-			if(outputGrid.Checked && outputList.Checked)
-            {
-				reportTeamsList.Report = Reports.FixtureCombined(Holder.Fixture, Holder.League);
-			} else if(outputList.Checked)
-            {
-				reportTeamsList.Report = Reports.FixtureList(Holder.Fixture, Holder.League);
-			}
-			else if (outputGrid.Checked)
-			{
-				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
-			}
-			buttonImportTeams.Text = "Generate";
-			buttonImportTeams.Enabled = true;
-		}
 
-		private void ContinueGenerateClick(object sender, EventArgs e)
-		{
-			Holder.Fixture.Teams.Clear();
-			Holder.Fixture.Teams.Parse(fixtureSelectedTeams, Holder.League);
-			Holder.Fixture.Games.Clear();
-			buttonImportTeams.Text = "Generating...";
-			buttonImportTeams.Enabled = false;
-			continueGenerating.Enabled = false;
-			int maxMillis = (int)maxTime.Value * 1000;
-			List<List<int>> grid = ContinueMixing(previousGrid, previousGamesPerTeam, previousHasRef, previousExistingPlays, maxMillis, previousBestScore);
-
-			Holder.Fixture.Games.Parse(grid, Holder.Fixture.Teams, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value), TeamColours());
-
-			textBoxGames.Text = Holder.Fixture.Games.ToString();
-			textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 			if (outputGrid.Checked && outputList.Checked)
 			{
 				reportTeamsList.Report = Reports.FixtureCombined(Holder.Fixture, Holder.League);
@@ -597,8 +164,33 @@ namespace Torn.UI
 			{
 				reportTeamsList.Report = Reports.FixtureGrid(Holder.Fixture, Holder.League);
 			}
-			buttonImportTeams.Text = "Generate";
-			buttonImportTeams.Enabled = true;
+		}
+
+		private void SetBusy(bool busy)
+		{
+			buttonGenerate.Text = busy ? "Generating..." : "Generate";
+			buttonGenerate.Enabled = !busy;
+			continueGenerating.Enabled = !busy;
+			//UseWaitCursor = busy;
+			Cursor.Current = busy ? Cursors.WaitCursor : Cursors.Default;
+		}
+
+		private void ContinueGenerateClick(object sender, EventArgs e)
+		{
+			Holder.Fixture.Teams.Clear();
+			Holder.Fixture.Teams.Populate(fixtureSelectedTeams);
+			Holder.Fixture.Games.Clear();
+			SetBusy(true);
+			try
+			{
+				teamGrid.ContinueMixing(Holder.Fixture, (int)maxTime.Value * 1000, gameDateTime.Value, TimeSpan.FromMinutes((double)minBetween.Value));
+
+				RefreshReports();
+			}
+			finally
+			{
+				SetBusy(false);
+			}
 		}
 
 		void ButtonImportGamesClick(object sender, EventArgs e)
@@ -662,21 +254,14 @@ namespace Torn.UI
 			tabControl1.TabPages.Remove(tabGamesList);
 			tabControl1.TabPages.Remove(tabGamesGrid);
 			tabControl1.TabPages.Remove(tabGraphic);
+
 			if (Holder.Fixture != null)
 			{
 				Holder.League.Load(Holder.League.FileName);
 				List<LeagueTeam> leagueTeams = Holder.League.GetTeamLadder();
 				if (Holder.Fixture.Teams.Count == 0)
 				{
-					foreach (var lt in leagueTeams)
-					{
-						Holder.Fixture.Teams.Add(new FixtureTeam
-						{
-							LeagueTeam = lt,
-							Name = lt.Name
-						}
-						);
-					}
+					Holder.Fixture.Teams.Populate(leagueTeams);
 				}
 				else
 				{
@@ -701,35 +286,30 @@ namespace Torn.UI
 					textBoxGrid.Lines = Holder.Fixture.Games.ToGrid(Holder.Fixture.Teams);
 				}
 
-				if (Holder.League.AllGames.Any())
-					numericTeamsPerGame.Value = (decimal)Math.Round(Holder.League.AllGames.Average(g => g.Teams.Count));
-
-
 				loading = true;
 				Console.WriteLine(leagueTeams.Count);
 				SetTeamsBox(leagueTeams.Count);
-				if (leagueTeams?.Count < 50)
-				{
-					for (int i = 0; i < leagueTeams?.Count; i++)
-					{
-						teamSelectors[i].Text = leagueTeams[i].Name;
-						teamSelectors[i].Checked = true;
-						fixtureTeamSelectors[i].Text = leagueTeams[i].Name;
-						fixtureTeamSelectors[i].Checked = true;
-						fixtureTeamSelectors[i].Width = 250;
-						teamSelectors[i].Visible = true;
-						fixtureTeamSelectors[i].Visible = true;
 
-					}
-					for (int i = leagueTeams?.Count ?? 0; i < teamSelectors?.Count; i++)
-					{
-						teamSelectors[i].Checked = false;
-						teamSelectors[i].Visible = false;
-						fixtureTeamSelectors[i].Checked = false;
-						fixtureTeamSelectors[i].Visible = false;
-					}
+				for (int i = 0; i < leagueTeams?.Count; i++)
+				{
+					teamSelectors[i].Text = leagueTeams[i].Name;
+					teamSelectors[i].Checked = true;
+					fixtureTeamSelectors[i].Text = leagueTeams[i].Name;
+					fixtureTeamSelectors[i].Checked = true;
+					teamSelectors[i].Visible = true;
+					fixtureTeamSelectors[i].Visible = true;
 				}
+
+				for (int i = leagueTeams?.Count ?? 0; i < teamSelectors?.Count; i++)
+				{
+					teamSelectors[i].Checked = false;
+					teamSelectors[i].Visible = false;
+					fixtureTeamSelectors[i].Checked = false;
+					fixtureTeamSelectors[i].Visible = false;
+				}
+
 				loading = false;
+				TeamCheckedChanged(null, null);
 			}
 		}
 
@@ -741,6 +321,7 @@ namespace Torn.UI
 				{
 					Left = 9,
 					Top = 10 + teamSelectors.Count * 26,
+					Width = teamsList.Width - 28,  // Leave room for a vertical scrollbar, should the owning panel decide it needs one.
 					Parent = teamsList
 				};
 
@@ -749,10 +330,11 @@ namespace Torn.UI
 			}
 			while (fixtureTeamSelectors.Count < i)
 			{
-				var teamBox = new CheckBox 
+				var teamBox = new CheckBox
 				{
 					Left = 9,
 					Top = 10 + fixtureTeamSelectors.Count * 26,
+					Width = fixtureTeamsList.Width - 28,
 					Parent = fixtureTeamsList
 				};
 
@@ -765,7 +347,6 @@ namespace Torn.UI
 		{
 			if (loading)
 			{
-				UpdateFinalsFixture(Holder.League.GetTeamLadder());
 				return;
 			}
 
@@ -778,7 +359,22 @@ namespace Torn.UI
 				}) != null;
 			});
 
-			UpdateFinalsFixture(selectedTeams);
+			frameFinals1.Teams = selectedTeams;
+		}
+
+		private void OutputCheckChanged(object sender, EventArgs e)
+		{
+			RefreshReports();
+		}
+
+		private void CheckRingsCheckedChanged(object sender, EventArgs e)
+		{
+			numericRings.Enabled = checkRings.Checked;
+
+			red.Enabled = !checkRings.Checked;
+			green.Enabled = !checkRings.Checked;
+			blue.Enabled = !checkRings.Checked;
+			yellow.Enabled = !checkRings.Checked;
 		}
 
 		private void FixtureTeamCheckedChanged(object sender, EventArgs e)
@@ -793,10 +389,15 @@ namespace Torn.UI
 			});
 		}
 
+		private void PrintReportSaveHtmlTable(object sender, EventArgs e)
+		{
+			ExportPages.ExportFixtureToFile(printReport1.FileName, holder);
+		}
+
 		void TextBoxKeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.Control && e.KeyCode == Keys.A &&sender != null)
-	        	((TextBox)sender).SelectAll();
+				((TextBox)sender).SelectAll();
 		}
 
 		// TODO: turn panelGraphic into a custom control that takes a Holder.Fixture as a property, so it can manage its own painting, clicks, etc.
@@ -815,10 +416,10 @@ namespace Torn.UI
 
 			foreach (var fg in games)
 				foreach (var ft in fg.Teams)
-					if (0 < ft.Key.Id() && ft.Key.Id() < difficulties.Length)
+					if (0 < ft.Key.TeamId && ft.Key.TeamId < difficulties.Length)
 					{
-						difficulties[ft.Key.Id() - 1] += (fg.Teams.Sum(x => x.Key.Id()) - ft.Key.Id()) / (fg.Teams.Count - 1F);
-						counts[ft.Key.Id() - 1]++;
+						difficulties[ft.Key.TeamId - 1] += (fg.Teams.Sum(x => x.Key.TeamId) - ft.Key.TeamId) / (fg.Teams.Count - 1F);
+						counts[ft.Key.TeamId - 1]++;
 					}
 			
 			for (int row = 0; row < rows; row++)
@@ -881,8 +482,8 @@ namespace Torn.UI
 				// Colour cells that represent teams that the selected team plays against in this game.
 				foreach (var kv in game.Teams)
 				{
-					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (kv.Key.Id() - 1) * size, (team.Id() - 1) * size, size, size);
-					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (team.Id() - 1) * size, (kv.Key.Id() - 1) * size, size, size);
+					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (kv.Key.TeamId - 1) * size, (team.TeamId - 1) * size, size, size);
+					g.FillRectangle(new SolidBrush(kv.Value.ToColor()), left + (team.TeamId - 1) * size, (kv.Key.TeamId - 1) * size, size, size);
 				}
 			}
 
@@ -968,50 +569,6 @@ namespace Torn.UI
 				FillCell(rows + 2, (int)i, size, i.ToSaturatedColor());
 		}
 
-		private void RefreshFinals(object sender, EventArgs e)
-		{
-			if (selectedTeams.Count <= 0)
-				UpdateFinalsFixture(Holder.League.GetTeamLadder());
-			else
-				UpdateFinalsFixture(selectedTeams);
-		}
-
-		private void UpdateFinalsFixture(List<LeagueTeam> teams)
-        {
-			labelTeamsToSendUp.Text = "Teams to send up from each game: " + (numericTeamsPerGame.Value - numericTeamsToCut.Value).ToString();
-
-			displayReportFinals.Report = Finals.Ascension(teams, (int)numericTeamsPerGame.Value, (int)numericTeamsToCut.Value, (int)numericTracks.Value, (int)numericFreeRides.Value, isWAColours.Checked);
-		}
-
-		private void NumericTeamsPerGameValueChanged(object sender, EventArgs e)
-		{
-			numericTeamsToCut.Maximum = numericTeamsPerGame.Value - 1;
-			numericFreeRides.Maximum = numericTeamsPerGame.Value - 1;
-
-			RefreshFinals(sender, e);
-		}
-
-		private void ButtonAscensionClick(object sender, EventArgs e)
-		{
-			numericTracks.Value = 1;
-			numericTeamsToCut.Value = 1;
-			numericFreeRides.Value = 1;
-		}
-
-		private void ButtonTwoTrackClick(object sender, EventArgs e)
-		{
-			numericTracks.Value = 2;
-			numericTeamsToCut.Value = 2;
-			numericFreeRides.Value = 0;
-		}
-
-		private void ButtonFormatDClick(object sender, EventArgs e)
-		{
-			numericTracks.Value = 3;
-			numericTeamsToCut.Value = 2;
-			numericFreeRides.Value = 0;
-		}
-
 		void NumericSizeValueChanged(object sender, EventArgs e)
 		{
 			panelGraphic.Invalidate();
@@ -1068,14 +625,6 @@ namespace Torn.UI
 			}
 		}
 
-		private void TabControl1Selected(object sender, TabControlEventArgs e)
-		{
-			if (e.Action == TabControlAction.Selected && e.TabPage == tabPyramid)
-				TabPyramidSelected();
-			if (e.Action == TabControlAction.Selected && e.TabPage == tabPyramidRound)
-				TabPyramidRoundSelected();
-		}
-
 		void FormFixtureResizeBegin(object sender, EventArgs e)
 		{
 			resizing = true;
@@ -1086,262 +635,23 @@ namespace Torn.UI
 			resizing = false;
 			panelGraphic.Invalidate();
 		}
-
-		Pyramid Pyramid = new Pyramid();
-		private void TabPyramidSelected()
-		{
-			Pyramid.Rounds.Add(pyramidRound1);
-			Pyramid.Rounds.Add(pyramidRound2);
-			Pyramid.Rounds.Add(pyramidRound3);
-			RefreshPyramidFixture();
-		}
-
-		private void NumericPyramidGamesPerTeamValueChanged(object sender, EventArgs e)
-		{
-			pyramidRound1.RoundGamesPerTeam = (int)numericPyramidGamesPerTeam.Value;
-			RefreshPyramidFixture();
-		}
-
-		private void NumericPyramidTeamsValueChanged(object sender, EventArgs e)
-		{
-			pyramidRound1.TeamsIn = (int)numericPyramidTeams.Value;
-			RefreshPyramidFixture();
-		}
-
-		private void PyramidRound1ValueChanged(object sender, EventArgs e)
-		{
-			pyramidRound2.TeamsIn = pyramidRound1.TeamsOut;
-			RefreshPyramidFixture();
-		}
-
-		private void PyramidRound2ValueChanged(object sender, EventArgs e)
-		{
-			pyramidRound3.TeamsIn = pyramidRound2.TeamsOut;
-			RefreshPyramidFixture();
-		}
-
-		private void PyramidRound3ValueChanged(object sender, EventArgs e)
-		{
-			numericPyramidFinalsTeams.Value = pyramidRound3.TeamsOut;
-			RefreshPyramidFixture();
-		}
-
-		private void NumericPyramidFinalsGamesValueChanged(object sender, EventArgs e)
-		{
-			RefreshPyramidFixture();
-		}
-
-		void RefreshPyramidFixture()
-		{
-			displayReportPyramid.Report = Pyramid.Report(Holder.League.Title, (int)numericPyramidFinalsGames.Value, (int)numericPyramidFinalsTeams.Value);
-			textDescription.Text = displayReportPyramid.Report.Description;
-		}
-
-		private void ButtonIdealiseClick(object sender, EventArgs e)
-		{
-			Pyramid.Idealise((int)numericPyramidDesiredTeamsPerGame.Value, (int)numericPyramidTeams.Value);
-		}
-
-		const int ColTitle = 1;
-		const int ColNumTeams = 2;
-		const int ColTeamsToTake = 3;
-		const int ColPriority = 4;
-		const int ColSecret = 5;
-
-		League PreviousLeague;
-		private void TabPyramidRoundSelected()
-		{
-			listViewGames.BeginUpdate();
-			try
-			{
-				if (PreviousLeague != Holder.League)
-					listViewGames.Items.Clear();
-				PreviousLeague = Holder.League;
-
-				// Add or update items in the list view, one for each game.
-				foreach (Game leagueGame in Holder.League.AllGames)
-				{
-					string key = leagueGame.Time.ToString("o");
-					ListViewItem[] matches = listViewGames.Items.Find(key, false);
-					ListViewItem item = matches.Any() ? matches[0] : listViewGames.Items.Add(new ListViewItem { Name = key });
-
-					item.Text = leagueGame.ServerGame?.InProgress ?? false ? "In Progress" : leagueGame.Time.FriendlyDateTime();
-					item.Tag = new PyramidGame() { Game = leagueGame };
-					while (item.SubItems.Count < listViewGames.Columns.Count)
-						item.SubItems.Add("");
-
-					item.SubItems[ColTitle].Text = leagueGame.Title;  // Description
-					item.SubItems[ColNumTeams].Text = leagueGame.Teams.Count.ToString();  // # teams
-					item.SubItems[ColSecret].Text = leagueGame.Secret ? "Y" : "";  // Secret?
-				}
-			}
-			finally
-			{
-				listViewGames.EndUpdate();
-			}
-		}
-
-		private void PyramidValueChanged(object sender, EventArgs e)
-		{
-			decimal numberOfTeams = numericTeamsFromLastRound.Value + numericTeamsFromLastRepechage.Value;
-			labelNumberOfTeams.Text = numberOfTeams.ToString();
-			labelTeamsPerGame.Text = (numberOfTeams / numericGames.Value).ToString("N2");
-			RefreshPyramidDraw();
-		}
-
-		private void ListViewGamesDoubleClick(object sender, EventArgs e)
-		{
-			ButtonEditPyramidGamesClick(sender, e);
-		}
-
-		readonly FormPyramidGame formPyramidGame = new FormPyramidGame();
-
-		private void ButtonRepechageClick(object sender, EventArgs e)
-		{
-			textBoxTitle.Text = "Repêchage ";
-			textBoxTitle.Focus();
-			textBoxTitle.SelectionStart = 10;
-		}
-
-		private void PyramidSpinKeyUp(object sender, KeyEventArgs e)
-		{
-			var _ = ((NumericUpDown)sender).Value;  // This piece of black magic forces the control's ValueChanged to fire after the user edits the text in the control.
-		}
-
-        private void isWAColours_CheckedChanged(object sender, EventArgs e)
-        {
-			RefreshFinals(sender, e);
-		}
-
-        private void outputList_CheckedChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void ButtonEditPyramidGamesClick(object sender, EventArgs e)
-		{
-			if (listViewGames.SelectedItems.Count == 0)
-				return;
-
-			var games = new List<PyramidGame>();
-			foreach (ListViewItem item in listViewGames.SelectedItems)
-				games.Add((PyramidGame)item.Tag);
-
-			formPyramidGame.Games = games;
-			if (formPyramidGame.ShowDialog() == DialogResult.OK)
-			{
-				foreach (ListViewItem item in listViewGames.SelectedItems)
-				{
-					PyramidGame pg = (PyramidGame)item.Tag;
-					pg.TeamsToTake = formPyramidGame.TeamsToTake;
-					pg.Priority = formPyramidGame.Priority;
-
-					while (item.SubItems.Count < listViewGames.Columns.Count)
-						item.SubItems.Add("");
-
-					item.SubItems[ColTeamsToTake].Text = formPyramidGame.TeamsToTake.ToString();
-					item.SubItems[ColPriority].Text = formPyramidGame.Priority.ToString();
-				}
-
-				RefreshPyramidDraw();
-				CalculateSpins();
-			}
-		}
-
-		private void ButtonClearPyramidGames(object sender, EventArgs e)
-		{
-			foreach (ListViewItem item in listViewGames.SelectedItems)
-			{
-				PyramidGame pg = (PyramidGame)item.Tag;
-				pg.TeamsToTake = null;
-				pg.Priority = Priority.Unmarked;
-
-				while (item.SubItems.Count < listViewGames.Columns.Count)
-					item.SubItems.Add("");
-
-				item.SubItems[ColTeamsToTake].Text = "";
-				item.SubItems[ColPriority].Text = "";
-			}
-			RefreshPyramidDraw();
-			CalculateSpins();
-		}
-
-		private void RefreshPyramidDraw()
-		{
-			var pyramidGames = new List<PyramidGame>();
-			foreach (ListViewItem item in listViewGames.Items)
-			{
-				var pg = (PyramidGame)item.Tag;
-				if (pg.Priority != Priority.Unmarked)
-					pyramidGames.Add((PyramidGame)item.Tag);
-			}
-
-			var pr = new PyramidDraw() { CompareRank = radioCompareRank.Checked, TakeTop = radioTakeTop.Checked };
-
-			(displayReportTaken.Report, displayReportDraw.Report) = pr.Reports(pyramidGames, Holder.League, (int)numericGames.Value, 
-				(int)numericTeamsFromLastRound.Value, (int)numericTeamsFromLastRepechage.Value, textBoxTitle.Text, checkBoxColour.Checked);
-		}
-
-		private void CalculateSpins()
-		{
-			int roundTeams = 0;
-			int repechageTeams = 0;
-			foreach (ListViewItem item in listViewGames.Items)
-			{
-				PyramidGame pg = (PyramidGame)item.Tag;
-				int take = pg.TeamsToTake == null ? pg.Game.Teams.Count : (int)pg.TeamsToTake;
-
-				if (pg.Priority == Priority.Round)
-					roundTeams += take;
-				else if (pg.Priority == Priority.Repechage)
-					repechageTeams += take;
-			}
-
-			numericTeamsFromLastRound.Value = roundTeams;
-			numericTeamsFromLastRepechage.Value = repechageTeams;
-		}
 	}
 }
 
-class TeamComparer : IComparer<FixtureTeam>
+class TeamComparer : IComparer<LeagueTeam>
 {
 	/// <summary>Sorted list of league teams.</summary>
 	public List<LeagueTeam> LeagueTeams { get; set; }
 
-	public int Compare(FixtureTeam x, FixtureTeam y)
+	public int Compare(LeagueTeam x, LeagueTeam y)
 	{
 		if (LeagueTeams == null)
 			return 0;
 
-		int ix = LeagueTeams.FindIndex(lt => lt == x.LeagueTeam);
-		int iy = LeagueTeams.FindIndex(lt => lt == y.LeagueTeam);
+		int ix = LeagueTeams.FindIndex(lt => lt == x);
+		int iy = LeagueTeams.FindIndex(lt => lt == y);
 		if (ix == -1) ix = 999999;
 		if (iy == -1) iy = 999999;
 		return ix - iy;
 	}
-}
-
-public static class ListExtensions
-{
-	public static List<List<T>> ChunkBy<T>(this List<T> source, int chunkSize)
-	{
-		return source
-			.Select((x, i) => new { Index = i, Value = x })
-			.GroupBy(x => x.Index / chunkSize)
-			.Select(x => x.Select(v => v.Value).ToList())
-			.ToList();
-	}
-	public static List<T> Uniq<T>(this List<T> source)
-    {
-		List<T> result = new List<T>();
-
-		foreach(T el in source)
-        {
-			bool exists = result.Contains(el);
-			if (!exists)
-				result.Add(el);
-        }
-		return result;
-
-    }
 }

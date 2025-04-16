@@ -1,13 +1,33 @@
 <html><head><title>Torn 5 Help</title></head><meta charset="UTF-8"><body>
 <style type="text/css" media="screen">
-.mnu { font-family: Sans-Serif; outline: 1px solid #aaf }
-.url { font-family: Sans-Serif }
-</style>
+	.back   { background: #eef; color: black; }
+	.mnu { font-family: Sans-Serif; outline: 1px solid #aaf; background-color: #eee }
+	@media (prefers-color-scheme: dark) {
+		.back { background: #112; color: white; }
+		.mnu { font-family: Sans-Serif; outline: 1px solid #aaf; background-color: #222 }
+	}
+	.url { font-family: Sans-Serif }
+</style></head><body class="back">
 
 <div style="max-width:800px; margin:auto">
+<p><strong>Contents</strong>:<br/>
+<a href="#QuickStart">Quick Start</a>
+<a href="#MainWindow">Main Window</a>
+<a href="#Leagues">Leagues</a>
+<a href="#Edit">Edit</a><br/>
+<a href="#Fixtures">Fixtures</a>:
+<a href="#Teams">Teams</a>
+<a href="#Finals">Finals</a>
+<a href="#Pyramid">Pyramid</a>
+<a href="#PyramidRound">Pyramid Round</a><br/>
+<a href="#Games">Games</a>
+<a href="#Reports">Reports</a>
+<a href="#WebServer">Web Server</a>
+</p>
 <h1>Torn 5</h1>
 <p>
-Torn 5 is a ground-up rewrite of Torn 4. It is a tournament scores manager, and can read data from Nexus, Helios and Laserforce systems. It requires .NET Framework 4.0. Note that Torn 5 is currently in a Beta state &mdash; it mostly works, but not all features are complete, and there may be bugs. If you are using it to open Torn 4 files, I recommend keeping a safe backup of those .Torn files elsewhere, just in case.
+Torn 5 is a laser tag tournament scores manager, and can read data from Nexus, Helios and Laserforce systems. It requires .NET Framework 4.7.
+</p>
 <h2>Changes from Torn 4</h2>
 <p>
 If you're familiar with Torn 4, here's the very quick guide:
@@ -15,10 +35,11 @@ If you're familiar with Torn 4, here's the very quick guide:
 <li>Torn 5 can have several leagues (i.e. .Torn files) open at once.</li>
 <li>The Games drop-down "combo box" is now an always-visible Games list.</li>
 <li>Reports are different.</li>
-<li>There are no menus &mdash; everything is on toolbar buttons for improved visibility. Occasional and advanced functions are on drop-down "menu" buttons.</li>
+<li>Drop-down menus are replaced with toolbar buttons for improved visibility. There are still some right-click menus.</li>
+<li>You can generate fixtures.</li>
 <li>Torn 5 acts as a web server so that players can get up-to-the-minute reports without you having to click anything other than Commit.</li></ul>
 </p>
-<h2>Quick Start</h2>
+<a name="#QuickStart"><h2>Quick Start</h2></a>
 </p><p>
 Run the program. Click <span class="mnu">Preferences</span>. If you have a lasergame system, select the appropriate system and enter the laser game database server address. 
 <ul>
@@ -46,7 +67,7 @@ If you have enabled the web server under <span class="mnu">Preferences</span>, a
 </p><p>
 For P&amp;C systems, for games that are still in the lasergame server, more data is shown: each game has a "heat map" showing who shot who and a "worm" showing teams' scores. But this (extensive) data is not stored in the .Torn file, so once the lasergame server purges that data and Torn is restarted, a fresh report will <em>not</em> contain this additional detail.
 </p>
-<h2>The Main Window</h2>
+<a name="MainWindow"><h2>The Main Window</h2></a>
 <p>
 Torn's window is divided into several areas. At the top is the "ribbon" bar.
 </p><p>
@@ -57,7 +78,7 @@ To the right of the Leagues list is the Games list showing all the games Torn kn
 To the right of the games list is the unallocated players box: players who are in the game focused in the games list but not yet allocated to a team will show here.
 </p><p>
 To the right of this are the team boxes. These hold players from a single team. If you need more team boxes, Click <span class="mnu">Add Row</span> or <span class="mnu">Add Column</span> in the Teams toolbar. Right-click on team box for a variety of functions, including changing the identity of the team or of a player, or applying a handicap.</p>
-<h2>Leagues</h2>
+<a name="Leagues"><h2>Leagues</h2></a>
 <p>
 To Torn, a league is a collection of games, teams, players and scores. Each league is saved as a .Torn file.
 </p><p>
@@ -69,57 +90,72 @@ To Torn, a league is a collection of games, teams, players and scores. Each leag
 </p><p>
 <strong><span class="mnu">Close</span></strong>: Remove the selected leagues from the Leagues list. (Of course, you can re-Open them later.)
 </p><p>
-<strong><span class="mnu">Edit</span></strong>: Here you can set a title for the league file, edit team names and player line-ups, and set victory points for the league. (Victory points options are not yet quite as rich as those in Torn 4.) (Victory points need not be whole numbers.)
+<a name="Edit"><strong><span class="mnu">Edit</span></strong></a>: Here you can set a title for the league file, edit team names and player line-ups, and so on.
+</p><p>
+Some buttons on this dialog are self-explanatory. The <span class="mnu">Paste Teams</span> button will paste text or spreadsheet cells from the clipboard, making a new team for each line of text or row of cells. The only thing it creates is the team name.
+</p><p>
+There are seven tabs on this dialog. <span class="mnu">League</span> lets you configure details that apply to the whole league, including victory points.  Victory points need not be whole numbers. You can also set details for scoring in elimination games. <span class="mnu">Scores</span> shows you a list of scores for the team or player you have selected at the left.
+</p><p>
+The next three tabs, <span class="mnu">Handicap</span>, <span class="mnu">Grades</span> and <span class="mnu">Points to %</span> work together to configure Western Australian-style grading: each player is assigned a grade; each grade is worth a certain number of grade points; a team's players' grade points are summed to give a grade point total, and that total is converted to a percentage handicap for the team. There is an extra grade point adjustment that can be applied to a team that has multiple players of grades marked as "penalty" &mdash; the penalty is applied once for each player beyond the first. Similarly, teams with more than one player with a grade marked as "Bonus" will receive that bonus for every player beyond the first. Thre can also be a penalty applied for teams that are missing player(s).
+</p><p>
+The <span class="mnu">Terminations</span> tab lets you set values that will be used when you right-click on a player in a game and select <span class="mnu">Manage Terms</span>.
 </p><p>
 <strong><span class="mnu">Preferences</span></strong>: brings up the Preferences dialog. These preferences are global to all of Torn, and are not specific to a league.
 </p><p>
-<strong><span class="mnu">Fixtures</span></strong>: Torn 5 can import fixtures from text. (Generation of fixtures within Torn 5 is not yet supported.) Once generated, Torn 5 will serve a list of these games from its internal web server, and can export the fixtures as HTML for upload to the web. It will also endeavour to keep track of where you are up to in your fixtures &mdash; the Now page from its internal web server will endeavour to identify the game just played (from lasergame server data) and the next game (from fixtures) automatically.
+<a name="Fixtures"><h2>Fixtures</h2></a>
+The <span class="mnu">Fixtures</span> dialog is "non-modal" &mdash; you can flip back to Torn's main window without closing this one. It has four tabs: <a href="#Teams">Teams</a>, <a href="#Finals">Finals</a>, <a href="#Pyramid">Pyramid</a>, and <a href="#PyramidRound">Pyramid Round</a>.
 </p><p>
-The Fixtures dialog has seven tabs: Teams, Games as a list, Games as a grid, Graphic, Finals, Pyramid and Pyramid Round. On the <strong>Teams</strong> tab, you'll see a list of teams that the fixture system already knows about. If your league has teams, they will appear here. (League teams and fixture teams are technically separate under the hood.) If not, type or paste a list here, one team per row, and click <span class="mnu">Import</span>.
+<a name="Teams"><h3>Teams</h3></a>
+On the <span class="mnu">Teams</span> tab, you'll see a list of teams that the fixture system already knows about. If your league has teams, they will appear here. If not, you can go to the <span class="mnu">Edit</span> dialog and use <span class="mnu">Add</span> or <span class="mnu">Paste Teams</span>.
+Here, you can generate fixtures. Once generated, Torn 5 will serve a list of these games from its internal web server, and can export the fixtures as HTML for upload to the web. It will also endeavour to keep track of where you are up to in your fixtures &mdash; the Now page from its internal web server will endeavour to identify the game just played (from lasergame server data) and the next game (from fixtures) automatically.
 </p><p>
-The <strong><span class="mnu">Games as a list</span></strong> page lets you import games for the teams you just created (or already have). If your games have three teams, each line should be a date/time followed by three numbers that represent teams. Existing games are not automatically cleared when you click <span class="mnu">Import</span>; if you want to clear existing games, click <span class="mnu">Clear</span> first.
+To generate fixtures, set desired values and then click <span class="mnu">Generate</span>. Torn will think for the number of seconds you specified in the Max Time box, and then display a fixture. If you want it to do more thinking, click <span class="mnu">Continue</span>. If you want to leave some teams out of the fixture, untick the checkbox next to their name before you generate.
 </p><p>
-The <strong><span class="mnu">Games as a grid</span></strong> page is similar. Each row is a team; each column is a game.
+To change how the fixture is displayed, tick or untick the <span class="mnu">Game Grid</span> and <span class="mnu">Game List</span> boxes. To specify the colours used and to specify whether a team will be marked as refereeing each game, tick or untick the relevant boxes before you generate.
 </p><p>
-The <strong><span class="mnu">Graphics</span></strong> page gives you a graphical editor for fixtures. Pick colours by clicking a mouse button on the palette at the bottom left &mdash; e.g. if you click the middle mouse button on the pink box, the middle mouse button is now pink, and clicking on squares in the grid with the middle mouse button will clear them (if they were not already clear) or mark them as pink (if they were already clear). If your mouse has five buttons, all five can likely be assigned colours in this way.
+To generate Lord of the Ring-style fixtures, in which several small games are run in parallel, click <span class="mnu">Rings</span> and specify the desired number of rings. At the moment, only 5 and 6 rings are supported. Ticking <span class="mnu">Referee</span> will attempt to assign as many referees to each game as there are players in that game. note that your starting league file should have team names in randomised order &mdash; if not, teams near each other on the list will play each other more.
 </p><p>
-At the bottom of the grid is a number showing how many teams are in each game. At the right are numbers showing how many games each team plays. To the right of that is a difficulty number, calculated by averaging the difficulty of all the teams this team plays against, plus a graph plotting those difficulties. To the right of that is the who-plays-who grid. When you click a square in the main grid, the who-plays-who grid highlights the selected team in silver, and the teams this team plays against in this game in the relevant colours.
-</p><p>
-At bottom right is a control for the size of the grid: set this larger to make grid squares larger.
-</p><p>
-At the moment the Graphics page assumes that teams are contiguously numbered &mdash; if you have deleted teams, thus leaving gaps in the numbering, this display may get a little out of whack.
-</p>
-<h3>Finals</h3>
+<a name="Finals"><h3>Finals</h3></a>
 <p>
 The <span class="mnu">Finals</span> page lets you set up finals schemes, such as Ascension, Format D, etc. Click the buttons for the various named finals schemes, or individually adjust parameters such as how many teams should be cut from each elimination game, how many tracks there should be, etc.
 </p><p>
-The team list shown at the left of the finals grid is from your team ladder. If it's not showing the order you want, adjust the settings on your Team Ladder report, then come back here.
+The team list shown at the left of the finals grid is from your team ladder. Untick teams to remove them from your finals fixture.
 </p>
-<h3>Pyramids</h3>
+<a name="Pyramid"><h3>Pyramid</h3></a>
 <p>
 The <span class="mnu">Pyramid</span> tab lets you create an overall fixture for a tournament that successively eliminates teams in each round (such as solos, doubles and triples). In the Australasian ZLTAC tournament, we use three rounds, with each round being followed by a second chance repêchage round &mdash; so: round 1, repêchage 1, round 2, repêchage 2, round 3, repêchage 3, finals.
 </p><p>
-Fill in the number of <span class="mnu">Starting teams</span> in the tournament. The number of rounds (and repêchages) in the tournament is currently hard-wired to three &mdash; if you want less you can just have a round that advances all of its teams. At ZLTAC, we give each team two games in their first round &mdash; this is to guarantee that everybody gets at least three games. Set <span class="mnu">Games per team in Round 1</span> to the appropriate value for your tournament.
+Fill in the number of <span class="mnu">Starting teams</span> in the tournament. The number of rounds (and repêchages) in the tournament is currently at most three. At ZLTAC, we give each team two games in their first round &mdash; this is to guarantee that everybody gets at least three games. Set <span class="mnu">Games per team in Round 1</span> to the appropriate value for your tournament.
 </p><p>
 Now iteratively adjust the values in the enabled numeric boxes: number of games in each round, number of teams to advance from each round to the next, number of games in each repêchage, number of teams to advance from each repêchage to the next round. Other numbers are updated automatically based on your choices. If you would prefer for a round to <i>not</i> be followed by a repêchage, untick the <span class="mnu">Repêchage</span> box for that round.
 </p><p>
 The number of teams in finals is determined by the values you set in the last round and repêchage before finals.
 </p><p>
-As you vary all these values, you'll see a text description at the right-hand side update, and the visual display of the fixture update. You can copy the descriptive text and paste it to where you're publishing it to players, and you can save or print the visual display.
+As you vary these values, you'll see various boxes show with an orange or red background. Hover the mouse over a coloured box to see why it is showing orange or red, and you'll see a description of the problem. It's often not possible to solve all the problems simultaneously &mdash; it will be necessary to accept some trade-offs.
 </p><p>
+You'll also see a text description at the right-hand side update, and the visual display of the fixture update. You can copy the descriptive text and paste it to where you're publishing it to players, and you can save or print the visual display.
+</p>
+<a name="PyramidRound"><h3>Pyramid Round</h3></a>
+<p>
 The <span class="mnu">Pyramid round</span> tool lets you rapidly create a draw for the next round (or repêchage) in a pyramid-style tournament.
 </p><p>
 To construct a <strong>repêchage</strong> round, select games in the list at the right and click on <span class="mnu">Edit Game(s)</span>. This pops a dialog where you can define details for the game, including how many teams from this particular game go to the repêchage. If your rule is “top 2 teams from each game advance” then you would fill this value in. For a game with 7 teams you would mark 5 teams to go to the repêchage; for a game with 8 teams you would mark 6 teams to go the repêchage; etc. Note that as you select games (and optionally specify number of teams from each), the value at the left for Number of teams from last round will change appropriately.
+</p><p>
+You can select multiple games by holding down Ctrl and/or Shift as you select. Then when you <span class="mnu">Edit Game(s)</span>, you will be editing all the games you have selected at once.
 </p><p>
 Set choices at the left, for the number of games, teams, etc., overriding the automatic values if necessary. For example, if your scheme is "top 10 teams overall advance" and you have 50 teams in the round, you would set <span class="mnu">Number of teams from last round</span> to 40. Under <span class="mnu">Top or bottom</span>, you want bottom for a repêchage – the way to get into the repêchage is to be low-scoring or low-ranking. Under <span class="mnu">Score or Rank</span>, select appropriately for your nominated scheme. If you would like Torn to assign colours to teams, tick the <span class="mnu">Colour</span> tick box.
 </p><p>
 As you make changes, a sample draw is updated in the bottom half of the window. Keep changing settings until it looks correct. We zig-zag down, so the top-ranked team in the draw (in the case of the repêchage, this is the "best of the worst" team) is at the top left, then we work across the games until we run out of games, then down to the second row, and right-to-left back across the second row.
 </p><p>
-Your selections in this window are remembered if you close the dialog (but not if you close and re-open Torn). So as you approach the end of the round, you can set up the repêchage with the last game of the round not yet decided, as a "practice" run. Before you display the draw to players, ensure that the results seem sensible: the bottom team is low on the draw, the team that just barely missed the cut is at the top left of the draw, teams appears only once each, etc.
+When editing games, the priority you select will determine what order the teams appear in the next round: teams set as priority <span class="mnu">Round</span> will appear first, then teams set as <span class="mnu">Repêchage</span>, then <span class="mnu">Plan B</span>. Plan B is special: teams that have already appeared in a game subsequent to the one they are being picked from will <em>not</em> be selected. So when setting up Repêchage 3, you might mark your Repêchage 2 games as priority Plan B. Teams that have already gone from those Repêchage 2 games to Round 3 will <em>not</em> be taken &mdash; instead, the teams immediately below them will be taken.
+</p><p>
+Your selections in this window are remembered as long as you keep this window open. So as you approach the end of the round, you can set up the repêchage with the last game of the round not yet decided, as a "practice" run. Before you display the draw to players, ensure that the results seem sensible: the bottom team is low on the draw, the team that just barely missed the cut is at the top left of the draw, teams appears only once each, etc.
 </p><p>
 For a round draw, you typically want to take the top teams from each game in the previous round, and the top teams from each repêchage game.
+</p><p>
+If you would like for a player or team to not appear in the next round, click <span class="mnu">Withdraw...</span> and untick the team in question.
 </p>
-<h2>Games</h2>
+<a name="Games"><h2>Games</h2></a>
 <p>
 <strong><span class="mnu">Latest</span></strong>: clicking this button re-queries the lasergame server, and selects the most recent game in the list.
 </p><p>
@@ -130,7 +166,7 @@ For a round draw, you typically want to take the top teams from each game in the
 <strong><span class="mnu">Forget</span></strong>: removes the selected games from the league.
 </p><p>
 </p>
-<h2>Teams</h2>
+<a name="Teams"><h2>Teams</h2></a>
 <p>
 <strong><span class="mnu">Add Row</span></strong>: Adds a row of team boxes.
 </p><p>
@@ -140,14 +176,14 @@ For a round draw, you typically want to take the top teams from each game in the
 </p><p>
 <strong><span class="mnu">Remove Column</span></strong>: Removes a column of team boxes.
 </p><p>
-<strong><span class="mnu">Remember Teams</span></strong>: for any teams in this game that aren't already on the list of teams in this league, Torn will add those teams to the league. You can then edit them under Leagues &#x25b8 Edit.
+<strong><span class="mnu">Remember Teams</span></strong>: for any teams in this game that aren't already on the list of teams in this league, Torn will add those teams to the league. You can then edit them under Leagues &#x25b8 <span class="mnu">Edit</span>.
 </p><p>
 </p>
-<h2>Reports</h2>
+<a name="Reports"><h2>Reports</h2></a>
 <p>
 <strong><span class="mnu">Report</span></strong>: generates and saves a set of HTML reports for the selected leagues. If you have not used the Configure button to configure reports for a league, a default set will be used, which may include a team ladder, a games list, a games pyramid or games grid, and a solo ladder. Exactly what reports are in the default set depends on the type of league: if Torn recognises that you're using a pyramid-style fixture, it will include a games pyramid. If not, it won't. If it detects that you're titling groups of games, it will include a report for your semifinals and a report for your grand finals; if not, it won't. In addition to these "overview" reports, detailed reports will be generated for each game, team and player.
 </p><p>
-The first time you generate reports Torn will ask what folder to export to. You can change this in <span class="mnu">Preferences</span> &gt; <span class="mnu">Reports</span>.
+The first time you generate reports Torn will ask what folder to export to. You can change this in <span class="mnu">Preferences</span> &#x25b8 <span class="mnu">Reports</span>.
 </p><p>
 <strong><span class="mnu">Upload</span></strong>: All files in the reports folder will be uploaded to the web site you specified in <span class="mnu">Preferences</span>.
 </p><p>
@@ -860,13 +896,13 @@ If you see a pack getting hit a lot less than other packs in its left shoulder, 
 <p>
 List every player in every game. Useful for data export. Export to TSV (tab-separated values) for easiest import into other tools.
 </p>
-<h2>Web Server</h2>
+<a name="WebServer"><h2>Web Server</h2></a>
 <p>
 Torn 5 has an internal web server. You can enable/disable it from <span class="mnu">Preferences</span>. You can also set its port number. The default, 8080, is a common port number for web servers that don't want to get in the way of anything else on the same machine that might be using port 80. If you're confident that nothing else is using port 80, you can set it to that if you like.
 </p><p>
 If you're running Torn on a computer called mymachine and you've left it on the default port of 8080, point a web browser at <span class="url">http://mymachine:8080</span>. From the computer running Torn 5, you can use <a href="http://localhost:8080" class="url">http://localhost:8080</a>.
 </p><p>
-There's a scoreboard showing the most recent committed game at <span class="url">http://localhost:8080/</span>[tag]<span class="url">/scoreboard.html</span>, where [tag] is the tag you set for this league file. This doesn't auto-refresh when new games are committed, so you'll have to press F5 to cause that refresh.
+There's a scoreboard showing the most recent committed game at <a href="http://localhost:8080/tag/scoreboard.html"><span class="url">http://localhost:8080/</span>[tag]<span class="url">/scoreboard.html</span></a>, where [tag] is the tag you set for this league file.
 </p><p>
 In addition to HTML, Torn 5's internal web server will serve JSON.
 <ul>

@@ -470,11 +470,7 @@ namespace Torn.UI
 
 			if (form.League.Teams.Count == 0)
 				foreach (var ft in activeHolder.Fixture.Teams)
-				{
-					var lt = new LeagueTeam { Name = ft.Name };
-					ft.LeagueTeam = lt;
-					form.League.AddTeam(lt);
-				}
+					form.League.AddTeam(ft.Clone(form.League));
 
 			if (form.ShowDialog() == DialogResult.OK)
 			{
@@ -681,16 +677,16 @@ namespace Torn.UI
 				ExportPages.ExportFixtures(exportFolder, SelectedLeagues());
 		}
 
-		FormFixture formFixture = new FormFixture();
+		private FormFixture formFixture;
 		void ButtonFixtureClick(object sender, EventArgs e)
 		{
-			if (formFixture == null)
+			if (formFixture == null || formFixture.IsDisposed)
 				formFixture = new FormFixture() { Icon = (Icon)Icon.Clone() };
 			if (listViewLeagues.SelectedItems.Count == 1)
 			{
 				formFixture.Holder = (Holder)listViewLeagues.SelectedItems[0].Tag;
 				formFixture.ExportFolder = exportFolder;
-				formFixture.ShowDialog();
+				formFixture.Show();
 			}
 		}
 
@@ -1580,7 +1576,7 @@ namespace Torn.UI
 				if (xtemplates != null)
 					holder.ReportTemplates.FromXml(xtemplates);
 
-				holder.Fixture.Teams.Parse(holder.League);
+				holder.Fixture.Teams.Populate(holder.League.Teams);
 				var xfixtures = xleague.SelectSingleNode("fixtures");
 				if (xfixtures != null)
 					holder.Fixture.Games.Parse(xfixtures.InnerText, holder.Fixture.Teams, '\t');  // TODO: change to .FromXml(doc, xfixtures);

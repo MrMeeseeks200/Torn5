@@ -24,9 +24,9 @@ namespace Torn
 				Color.FromArgb(0xA0, 0xFF, 0xA0), Color.FromArgb(0xFF, 0xFF, 0x90), Color.FromArgb(0xC0, 0xA0, 0xFF), Color.FromArgb(0xFF, 0xA0, 0xF0),  // Green, Yellow, Purple, Pink,
 				Color.FromArgb(0xA0, 0xFF, 0xFF), Color.FromArgb(0xFF, 0xD0, 0xA0), Color.FromArgb(0xFF, 0xFF, 0xFF), Color.FromArgb(0x90, 0x90, 0x90),  // Cyan, Orange, White, Black,
 				Color.FromArgb(0xFF, 0xB0, 0x90), Color.FromArgb(0xE0, 0xE0, 0xFF), Color.FromArgb(0xD0, 0xD0, 0x80), Color.FromArgb(0xFF, 0xC0, 0xF0),  // Fire, Ice, Earth, Crystal,
-				Color.FromArgb(0xE0, 0xE0, 0xE0), Color.FromArgb(0xB0, 0xC0, 0xFF), Color.FromArgb(0xE0, 0xE0, 0xE0)  // Rainbow, Cops, Referee
+				Color.FromArgb(0xE0, 0xE0, 0xE0), Color.FromArgb(0xB0, 0xC0, 0xFF), Color.FromArgb(0xF0, 0xF0, 0xF0)  // Rainbow, Cops, Referee
 			};
-			return Colors[(int)colour];
+			return Colors.Valid((int)colour) ? Colors[(int)colour] : Color.Empty;
 		}
 
 		public static Color ToSaturatedColor(this Colour colour)
@@ -240,7 +240,7 @@ namespace Torn
 	/// <summary>Stores data about each remembered league team</summary>
 	public class LeagueTeam: IComparable
 	{
-		internal int TeamId  { get; set; }
+		internal int TeamId { get; set; } = -1;
 
 		public List<LeaguePlayer> Players { get; set; }
 
@@ -268,9 +268,13 @@ namespace Torn
 		public Handicap Handicap { get; set; }
 		public string Comment { get; set; }
 
+		/// <summary>Set this to false to mark a team as withdrawn.</summary>
+		public bool Active { get; set; }
+
 		public LeagueTeam()
 		{
 			Players = new List<LeaguePlayer>();
+			Active = true;
 		}
 
 		public LeagueTeam Clone(League clonedLeague)
@@ -281,6 +285,7 @@ namespace Torn
 				TeamId = TeamId,
 				Handicap = Handicap,
 				Comment = Comment,
+				Active = Active,
 
 				Players = new List<LeaguePlayer>()
 			};
@@ -359,22 +364,22 @@ namespace Torn
 		}
 
 		public double GetZeroedScore()
-        {
+		{
 			double score = 0;
 			foreach(GamePlayer player in players)
-            {
+			{
 				Console.WriteLine(player.PlayerId + " " + player.ZeroedScore + " " + player.Score);
 				if(player.ZeroedScore != null && player.ZeroedScore != 0)
-                {
+				{
 					score += (double)player.ZeroedScore;
-                } else
-                {
+				} else
+				{
 					score += player.Score;
-                }
+				}
 				Console.WriteLine(score);
-            }
+			}
 			return score;
-        }
+		}
 
 		public GameTeam Clone()
 		{
@@ -429,7 +434,7 @@ namespace Torn
 	}
 
 	public class TermRecord
-    {
+	{
 		public TermType Type { get; set; }
 		public DateTime? Time { get; set; }
 		public int Value { get; set; }
@@ -437,12 +442,12 @@ namespace Torn
 
 		[JsonConstructor]
 		public TermRecord(TermType type, DateTime? time, int value, string reason = "")
-        {
+		{
 			Type = type;
 			Time = time;
 			Value = value;
 			Reason = reason;
-        }
+		}
 
 		public TermRecord(TermType type, int value, string reason = "")
 		{
@@ -484,35 +489,35 @@ namespace Torn
 		public bool IsEliminated { get; set; }
 
 		public double GetZeroedScore()
-        {
+		{
 			if(ZeroedScore != null && ZeroedScore != 0)
-            {
+			{
 				return (double)ZeroedScore;
-            } 
+			}
 			return Score;
-        }
+ 		}
 
 		public void SetIsEliminated(bool isElimed)
-        {
+		{
 			if(isElimed)
-            {
+			{
 				IsEliminated = true;
 				ZeroedScore = ZeroedScore == null ? Score : ZeroedScore;
-            } else
-            {
+			} else
+			{
 				IsEliminated = false;
 				ZeroedScore = null;
-            }
-        }
+			}
+		}
 
 		public void AddTermRecord(TermRecord termRecord)
-        {
+		{
 			if(TermRecords == null)
-            {
+			{
 				TermRecords = new List<TermRecord>();
-            }
+			}
 			TermRecords.Add(termRecord);
-        }
+		}
 
 		/// <summary>Used for accumulating data to be used for a team total, a game average, etc.</summary>
 		public void Add(GamePlayer source)
@@ -682,6 +687,11 @@ namespace Torn
 			return (string.IsNullOrEmpty(Title) ? "Game " : Title + " Game ") + Utility.ShortDateTime(Time);
 		}
 
+		public GamePlayer Player(string serverPlayerId)
+		{
+			return AllPlayers().Find(p => p is ServerPlayer sp && sp.ServerPlayerId == serverPlayerId);
+		}
+
 		/// <summary>Pull Event data from ServerGames and put it into GamePlayers.</summary>
 		public bool PopulateEvents()
 		{
@@ -727,7 +737,7 @@ namespace Torn
 			if (totalScore == null && totalScore != 0)
 				totalScore = Teams.Sum(t => t.Score);
 
-			return (int)totalScore;
+			return (double)totalScore;
 		}
 	}
 
@@ -777,15 +787,15 @@ namespace Torn
 	}
 
 	public class PointPercent
-    {
+	{
 		public decimal Points { get; set; }
 		public decimal Percent { get; set; }
 
 		public PointPercent(decimal points, decimal percent)
-        {
+		{
 			Points = points;
 			Percent = percent;
-        }
+		}
 	}
 
 	/// <summary>Load and manage a .Torn league file, containing league teams and games.</summary>
@@ -959,16 +969,16 @@ namespace Torn
 		};
 
 		public int GetAutoHandicap(int points)
-        {
+		{
 			PointPercent pointPercent = PointPercents.Find((pp) => pp.Points == points);
 			if (pointPercent == null && PointPercents.Count() > 1)
-            {
+			{
 				List<PointPercent> sortedPointPercents = PointPercents.OrderBy(p => p.Points).ToList();
 				PointPercent minPointPercent = sortedPointPercents[0];
 				PointPercent maxPointPercent = sortedPointPercents[sortedPointPercents.Count - 1];
 
 				if (points < minPointPercent.Points)
-                {
+				{
 					PointPercent secondSmallestPointPercent = sortedPointPercents[1];
 					decimal diffPoints = Math.Abs(points - minPointPercent.Points);
 					decimal diff = Math.Abs(secondSmallestPointPercent.Percent - minPointPercent.Percent) * diffPoints;
@@ -985,13 +995,13 @@ namespace Torn
 				}
 			}
 			return Convert.ToInt32(pointPercent.Percent);
-        }
+		}
 
 		public decimal GetGradePoints(string playerGrade)
-        {
+		{
 			Grade grade = Grades.Find(g => g.Name == playerGrade);
 			return grade?.Points ?? 0;
-        }
+		}
 
 		public decimal GetGradePenalty(string playerGrade)
 		{
@@ -1381,14 +1391,14 @@ namespace Torn
 
 				Grades = grades;
 			} else
-            {
+			{
 				Grades = DEFAULT_GRADES;
-            }
+			}
 
 			XmlNode capsNode = root.SelectSingleNode("caps");
 
 			if(capsNode != null)
-            {
+			{
 				XmlNodeList xcaps = capsNode.SelectNodes("cap");
 
 				List<PointPercent> pointPercents = new List<PointPercent>();
@@ -1400,7 +1410,7 @@ namespace Torn
 				}
 				PointPercents = pointPercents;
 			} else
-            {
+			{
 				PointPercents = WA_LEAGUE_POINTS;
 
 			}
@@ -1567,10 +1577,8 @@ namespace Torn
 		/// </summary>
 		void LinkThings()
 		{
-			teams.Sort();
-
 			for(int i = 0; i < AllGames.Count; i++)
-            {
+			{
 				var game = AllGames[i];
 				foreach (GameTeam gameTeam in game.Teams) 
 				{
@@ -1907,10 +1915,10 @@ namespace Torn
 		/// <summary>Return a player's Name.</summary>
 		public string Alias(GamePlayer gamePlayer)
 		{
-			var leaguePlayer = LeaguePlayer(gamePlayer);
-			return leaguePlayer == null ? (string)null : leaguePlayer.Name;
+			return LeaguePlayer(gamePlayer)?.Name;
 		}
 
+		/// <summary>Return the LeagueTeam with the matching TeamId, if any.</summary>
 		public LeagueTeam LeagueTeam(GameTeam gameTeam)
 		{
 			var result = gameTeam == null ? null : teams.Find(team => team.TeamId == gameTeam.TeamId);
@@ -2023,7 +2031,7 @@ namespace Torn
 		}
 
 		public List<LeagueTeam> GetTeamLadder()
-        {
+		{
 			return teams.OrderByDescending(x => TotalPoints(x, false)).ThenByDescending(x => AverageScore(x,false)).ToList();
 		}
 
@@ -2146,10 +2154,10 @@ namespace Torn
 				Console.WriteLine("Tie Break " + ZeroedTieBreak);
 
 				if (HitsTieBreak)
-                {
+				{
 					relevantTeams = relevantTeams.OrderBy(x => -x.Score).ThenBy(x => -x.GetHitsBy()).ToList();
 				} else if (ZeroedTieBreak)
-                {
+				{
 					relevantTeams = relevantTeams.OrderBy(x => -x.Score).ThenBy(x => -x.GetZeroedScore()).ToList();
 				}
 				var ties = relevantTeams.Where(t => (t.Score == gameTeam.Score) && ((HitsTieBreak && t.GetHitsBy() == gameTeam.GetHitsBy()) || !HitsTieBreak) && ((ZeroedTieBreak && t.GetZeroedScore() == gameTeam.GetZeroedScore()) || !ZeroedTieBreak));  // If there are ties, this list will contain the tied teams. If not, it will contain just this team.
@@ -2198,7 +2206,7 @@ namespace Torn
 		public int ShotsDenied { get; set; }  // if hit is Event_Type = 1402 or 1404, number of shots shootee had on the base when denied.
 
 		// EventType (see P&C ng_event_types):
-		//  0..6:   tagged foe (in various hit locations: laser, chest, left shoulder, right shoulder, left back shoulder (never used), right back shoulder (never used), back);
+		//  0..6:   tagged foe (in various hit locations: laser, chest, left shoulder, right shoulder, left back shoulder (never used), right back shoulder (never used), back);//  0..6:   tagged foe (in various hit locations: laser, chest, left shoulder, right shoulder, left back shoulder (never used), right back shoulder (never used), back);
 		//  7..13:  tagged ally;
 		//  14..20: tagged by foe;
 		//  21..27: tagged by ally;
@@ -2213,10 +2221,11 @@ namespace Torn
 		//  36: game state (whatever that means);
 		//  37..46: player tagged target (whatever that means);
 		//  1401: score denial points, friendly;
-		//  1402: score denial points;
-		//  1403: lose points for being denied, friendly;
-		//  1404: lose points for being denied. Note that Score field is incorrect for this event type -- use Result_Data_3, PointsLostByDeniee instead.
-		//  1404: lose points for being denied. Note that Score field is incorrect for this event type -- use Result_Data_3, PointsLostByDeniee instead.
+		//  1402: score denial points, foe;
+		//  1403: lose points for being denied, friendly. Note that Score field is incorrect for this event type -- use Result_Data_3, PointsLostByDeniee instead.
+		//  1404: lose points for being denied, foe. Note that Score field is incorrect for this event type -- use Result_Data_3, PointsLostByDeniee instead.
+		//  1405: looks like it occurs alongside any 33 (hit by base) and contains the actual points lost for being hit, in Result_Data_3, PointsLostByDeniee.
+		//  1409: Dunno. Looks boring, though.
 
 		public override string ToString()
 		{
@@ -2312,7 +2321,7 @@ namespace Torn
 		}
 
 		public void PopulateTerms(List<Event> events)
-        {
+		{
 			YellowCards = 0;
 			RedCards = 0;
 			TermRecords = null;
