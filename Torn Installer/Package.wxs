@@ -38,8 +38,11 @@
 				</File>
 			</Component>
 			<Component Id="BouncyCastle.Crypto.dll" Guid="{39d5acd9-5f6b-4d2b-a701-d60964a13ce1}"> 
-        <File  Id="BouncyCastle.Crypto.dll" Name="BouncyCastle.Crypto.dll" Source="BouncyCastle.Crypto.dll" DiskId="1"/> 
-      </Component> 
+        <File  Id="BouncyCastle.Crypto.dll" Name="BouncyCastle.Crypto.dll" Source="BouncyCastle.Cryptography.dll" DiskId="1"/> 
+      </Component>
+      <Component Id="ExCSS.dll" Guid="{6e8b6c50-19cc-45f4-934e-c77bdd7b4773}">
+      	<File  Id="ExCSS.dll" Name="ExCSS.dll" Source="ExCSS.dll" DiskId="1"/>
+      </Component>
       <Component Id="Fizzler.dll" Guid="{21807718-60cb-47ba-af2b-6f0785f9a94e}"> 
         <File  Id="Fizzler.dll" Name="Fizzler.dll" Source="Fizzler.dll" DiskId="1"/> 
       </Component> 
@@ -97,11 +100,8 @@
       <Component Id="System.Windows.Forms.Ribbon.dll" Guid="{d0ac1d67-6d4a-4f4c-9353-f542fd49e3b7}"> 
         <File  Id="System.Windows.Forms.Ribbon.dll" Name="System.Windows.Forms.Ribbon.dll" Source="System.Windows.Forms.Ribbon.dll" DiskId="1"/> 
       </Component> 
-      <Component Id="Ubiety.Dns.Core.dll" Guid="{19f99096-f3f5-4260-83d9-9ebee6a24590}"> 
-        <File  Id="Ubiety.Dns.Core.dll" Name="Ubiety.Dns.Core.dll" Source="Ubiety.Dns.Core.dll" DiskId="1"/> 
-      </Component> 
       <Component Id="ZstdNet.dll" Guid="{636d60e5-3935-4396-9f51-e5200218e920}"> 
-        <File  Id="ZstdNet.dll" Name="ZstdNet.dll" Source="ZstdNet.dll" DiskId="1"/> 
+        <File  Id="ZstdNet.dll" Name="ZstdNet.dll" Source="ZstdSharp.dll" DiskId="1"/> 
       </Component> 
       <Component Id="Torn.exe.config" Guid="{132d4b51-c76b-4772-aeba-3b40d1c49b42}"> 
         <File  Id="Torn.exe.config" Name="Torn.exe.config" Source="Torn.exe.config" DiskId="1"/> 
@@ -129,6 +129,7 @@
 			<Feature Id="MainProgram" Title="Torn 5" Description="The main TORN package" Level="1" AllowAbsent="no" AllowAdvertise="no" ConfigurableDirectory="TARGETDIR">
 				<ComponentRef Id="MainExecutable"/>
         <ComponentRef Id="BouncyCastle.Crypto.dll"/> 
+        <ComponentRef Id="ExCSS.dll"/> 
         <ComponentRef Id="Fizzler.dll"/> 
         <ComponentRef Id="Google.Protobuf.dll"/> 
         <ComponentRef Id="K4os.Compression.LZ4.dll"/> 
@@ -148,7 +149,6 @@
         <ComponentRef Id="System.Threading.Tasks.Extensions.dll"/> 
         <ComponentRef Id="System.ValueTuple.dll"/> 
         <ComponentRef Id="System.Windows.Forms.Ribbon.dll"/> 
-        <ComponentRef Id="Ubiety.Dns.Core.dll"/> 
         <ComponentRef Id="ZstdNet.dll"/> 
         <ComponentRef Id="Torn.exe.config"/> 
 			</Feature>
