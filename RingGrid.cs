@@ -149,10 +149,11 @@ namespace Torn5
 				}
 
 			// Look for games that didn't get enough referees and give them more.
-			bool assignedAnyRefs = false;
 			var gamesThatNeedRefs = fixture.Games.Where(fg => fg.Teams.Count(t => t.Value == Colour.Referee) < fg.Teams.Count(t => t.Value != Colour.Referee)).ToList();  // We desire one referee per player.
 			while (gamesThatNeedRefs.Any())
 			{
+				bool assignedAnyRefs = false;
+
 				for (int i = 0; i < gamesThatNeedRefs.Count; i++)
 				{
 					thisGame = gamesThatNeedRefs[i];
@@ -174,6 +175,7 @@ namespace Torn5
 						}
 					}
 				}
+
 				if (!assignedAnyRefs)
 					return;  // If we go through all the games without making a single match, we just need to stop: there are no remaining players who can ref the games that need refs.
 			}
